@@ -15,6 +15,8 @@
   :source-control (:git "https://github.com/shirakumo/3d-spaces.git")
   :serial T
   :components ((:file "protocol")
+               (:file "bvh2")
+               (:file "quadtree")
                (:file "documentation"))
   :depends-on (:documentation-utils
                :3d-vectors

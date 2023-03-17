@@ -19,14 +19,18 @@
    #:enter
    #:leave
    #:update
+   #:call-with-all
    #:call-with-contained
    #:call-with-overlapping
+   #:container
+   #:container-p
    #:region
    #:region-bsize
+   #:do-all
    #:do-contained
    #:do-overlapping))
 
-(in-package #:org.shirakumo.flare.space)
+(in-package #:org.shirakumo.fraf.trial.space)
 
 (defgeneric location (object))
 (defgeneric bsize (object))
@@ -39,8 +43,13 @@
 (defgeneric enter (object container))
 (defgeneric leave (object container))
 (defgeneric update (object container))
+(defgeneric call-with-all (function container))
 (defgeneric call-with-contained (function container region))
 (defgeneric call-with-overlapping (function container region))
+
+(defstruct (container
+            (:constructor NIL)
+            (:copier NIL)))
 
 (defstruct (region
             (:include vec3)
@@ -110,17 +119,39 @@
           (T
            (%region (vy location) (vy location) 0 (vxy_ bsize))))))
 
-(defmethod enter ((object sequences:sequence) container)
+(defmethod check ((container container)))
+(defmethod reoptimize ((container container) &key))
+
+(defmethod enter ((object sequences:sequence) (container container))
   (sequences:dosequence (child object)
     (enter child container)))
 
-(defmethod leave ((object sequences:sequence) container)
+(defmethod leave ((object sequences:sequence) (container container))
   (sequences:dosequence (child object)
     (leave child container)))
 
-(defmethod update ((object sequences:sequence) container)
+(defmethod update ((object sequences:sequence) (container container))
   (sequences:dosequence (child object)
     (update child container)))
+
+(defmethod call-with-contained (function (container container) thing)
+  (with-region (region)
+    (ensure-region thing region)
+    (call-with-contained function container region)))
+
+(defmethod call-with-overlapping (function (container container) thing)
+  (with-region (region)
+    (ensure-region thing region)
+    (call-with-overlapping function container region)))
+
+(defmacro do-all ((element container &optional result) &body body)
+  (let ((thunk (gensym "THUNK")))
+    `(flet ((,thunk (,element)
+              ,@body))
+       (declare (dynamic-extent #',thunk))
+       (block NIL
+         (call-with-all #',thunk ,container)
+         ,result))))
 
 (defmacro do-contained ((element container region &optional result) &body body)
   (let ((thunk (gensym "THUNK"))

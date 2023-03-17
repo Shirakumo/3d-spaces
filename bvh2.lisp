@@ -12,7 +12,6 @@
    #:bvh-insert
    #:bvh-remove
    #:bvh-update
-   #:bvh-check
    #:bvh-lines))
 
 (in-package #:org.shirakumo.fraf.trial.bvh2)
@@ -214,6 +213,7 @@
            node))))
 
 (defstruct (bvh
+            (:include container)
             (:constructor make-bvh ())
             (:copier NIL)
             (:predicate NIL))
@@ -331,7 +331,18 @@
                     (node-refit-object node (bvh-node-o node))))))
     (recurse (bvh-root bvh))))
 
-(defmethod call-with-contained (function (bvh bvh) %region)
+(defmethod call-with-all (function (bvh bvh))
+  (labels ((recurse (node)
+             (when node
+               (let ((o (bvh-node-o node)))
+                 (cond (o
+                        (funcall function o))
+                       (T
+                        (recurse (bvh-node-l node))
+                        (recurse (bvh-node-r node))))))))
+    (recurse (bvh-root bvh))))
+
+(defmethod call-with-contained (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
   (let ((function (etypecase function
                     (symbol (fdefinition function))
@@ -359,7 +370,7 @@
               (when (= 0 i)
                 (return)))))))
 
-(defmethod call-with-overlapping (function (bvh bvh) region)
+(defmethod call-with-overlapping (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
   (let ((function (etypecase function
                     (symbol (fdefinition function))

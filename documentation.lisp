@@ -4,4 +4,4 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:org.shirakumo.flare.space)
+(in-package #:org.shirakumo.fraf.trial.space)

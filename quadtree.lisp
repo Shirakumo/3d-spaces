@@ -19,14 +19,7 @@
    #:quadtree-find-contained
    #:quadtree-find-contained-in
    #:quadtree-find-for
-   #:quadtree-check
-   #:quadtree-print
-   #:quadtree-lines
-   #:quadtree-reinsert-all
-   #:call-all
-   #:call-with-region
-   #:call-with-area
-   #:call-with-object))
+   #:quadtree-lines))
 
 (in-package #:org.shirakumo.fraf.trial.quadtree)
 
@@ -428,6 +421,7 @@
   (for-node-children (node-set-threshold node threshold)))
 
 (defstruct (quadtree
+            (:include container)
             (:constructor make-quadtree ())
             (:copier NIL)
             (:predicate NIL))
@@ -533,19 +527,23 @@
         (sy (vy2 size)))
     (quadtree-find-contained tree (vec4 lx ly (+ lx sx) (+ ly sy)) vector)))
 
-(defmethod trial:enter (object (tree quadtree))
+(defmethod enter (object (tree quadtree))
   (quadtree-insert tree object))
 
-(defmethod trial:leave (object (tree quadtree))
+(defmethod leave (object (tree quadtree))
   (quadtree-remove tree object))
 
-(defmethod trial::clear ((tree quadtree))
+(defmethod clear ((tree quadtree))
   (clrhash (quadtree-table tree))
   (node-clear (quadtree-root tree) NIL)
   tree)
 
-(defun quadtree-print (tree)
-  (format T "~&-------------------------")
+(defmethod update (object (tree quadtree))
+  (quadtree-update tree object))
+
+(defmethod describe-object ((tree quadtree) stream)
+  (call-next-method)
+  (format T "~%~&-------------------------")
   (labels ((recurse (node)
              (when (quadtree-node-active-p node)
                (format T "~&~v@{|  ~}└ ~a" (quadtree-node-depth node) node)
@@ -572,7 +570,7 @@
       (when (node-active-p root) (recurse root))
       points)))
 
-(defun quadtree-check (tree) ;; None of these things should happen.
+(defmethod check ((tree quadtree)) ;; None of these things should happen.
   (declare (optimize speed))
   (labels ((recurse (node)
              (when (and (not (quadtree-node-active-p node)) (node-active-children-p node))
@@ -603,7 +601,7 @@
                  finally (unless match
                            (error "Node ~a~%does not refer to object~%  ~a" node object)))))
 
-(defun quadtree-reinsert-all (tree) ;; Useful only if something's gone very wrong.
+(defmethod reoptimize ((tree quadtree) &key) ;; Useful only if something's gone very wrong.
   (declare (optimize speed))
   (let ((objects (node-clear (quadtree-root tree) (make-object-vector))))
     (declare (type (vector T) objects))
@@ -682,29 +680,27 @@
          (error "Not supported"))
        (lambda ())))))
 
-(defun call-all (function tree)
+(defmethod call-with-all (function (tree quadtree))
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function))))
     (for:for ((object over tree))
       (funcall function object))))
 
-(defun call-with-region (function tree region &key contain)
-  (declare (type (or null vec4) region))
-  (declare (type boolean contain))
+(defmethod call-with-contained (function (tree quadtree) (region region))
   (let ((function (etypecase function
                     (symbol (fdefinition function))
-                    (function function))))
-    (for:for ((object over tree :region region :contain contain))
+                    (function function)))
+        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-bsize region)) (vy3 (region-bsize region)))))
+    (declare (dynamic-extent region))
+    (for:for ((object over tree :region region :contain T))
       (funcall function object))))
 
-(defun call-with-area (function tree location size &key contain)
-  (declare (optimize speed))
-  (declare (type vec2 location size))
-  (call-with-region function tree
-                    (vec4 (vx2 location) (vy2 location) (vx2 size) (vy2 size))
-                    :contain contain))
-
-(defun call-with-object (function tree object &key contain)
-  (declare (optimize speed))
-  (call-with-area function tree (location object) (bsize object) :contain contain))
+(defmethod call-with-overlapping (function (tree quadtree) (region region))
+  (let ((function (etypecase function
+                    (symbol (fdefinition function))
+                    (function function)))
+        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-bsize region)) (vy3 (region-bsize region)))))
+    (declare (dynamic-extent region))
+    (for:for ((object over tree :region region :contain NIL))
+      (funcall function object))))
