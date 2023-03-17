@@ -27,7 +27,7 @@
 
 (defstruct (region
             (:include vec3)
-            (:constructor %region (x y z bsize))
+            (:constructor %region (3d-vectors::%vx3 3d-vectors::%vy3 3d-vectors::%vz3 bsize))
             (:predicate NIL)
             (:copier NIL))
   (bsize (vec 0 0 0) :type vec3))
