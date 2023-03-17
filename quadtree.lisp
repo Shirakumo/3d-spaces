@@ -1,3 +1,9 @@
+#|
+ This file is a part of 3d-spaces
+ (c) 2023 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
+ Author: Janne Pakarinen <gingeralesy@gmail.com>
+|#
+
 (defpackage #:org.shirakumo.fraf.trial.quadtree
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
   (:export

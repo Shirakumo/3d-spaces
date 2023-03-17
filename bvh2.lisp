@@ -13,12 +13,7 @@
    #:bvh-remove
    #:bvh-update
    #:bvh-check
-   #:bvh-print
-   #:bvh-lines
-   #:bvh-reinsert-all
-   #:call-with-contained
-   #:call-with-overlapping
-   #:do-fitting))
+   #:bvh-lines))
 
 (in-package #:org.shirakumo.fraf.trial.bvh2)
 
