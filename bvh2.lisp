@@ -252,21 +252,25 @@
     (when node
       (node-refit-object node object))))
 
-(defmethod trial:enter (object (bvh bvh))
+(defmethod enter (object (bvh bvh))
   (bvh-insert bvh object))
 
-(defmethod trial:leave (object (bvh bvh))
+(defmethod leave (object (bvh bvh))
   (bvh-remove bvh object))
 
-(defmethod trial::clear ((bvh bvh))
+(defmethod update (object (bvh bvh))
+  (bvh-update bvh object))
+
+(defmethod clear ((bvh bvh))
   (clrhash (bvh-table bvh))
   (setf (bvh-root bvh) (%make-bvh-node 0f0 0f0 0f0 0f0 0 NIL NIL NIL NIL))
   bvh)
 
-(defun bvh-print (bvh)
-  (format T "~&-------------------------")
+(defmethod describe-object ((bvh bvh) stream)
+  (call-next-method)
+  (format stream "~&~%-------------------------")
   (labels ((recurse (node)
-             (format T "~&~v@{|  ~}└ ~a" (bvh-node-d node) node)
+             (format stream "~&~v@{|  ~}└ ~a" (bvh-node-d node) node)
              (unless (bvh-node-o node)
                (recurse (bvh-node-l node))
                (recurse (bvh-node-r node)))))
@@ -293,7 +297,7 @@
       (recurse (bvh-root bvh)))
     p))
 
-(defun bvh-check (bvh)
+(defmethod check ((bvh bvh))
   (labels ((recurse (node)
              (cond ((bvh-node-l node)
                     (unless (eq node (bvh-node-p (bvh-node-l node)))
@@ -332,15 +336,16 @@
                     (node-refit-object node (bvh-node-o node))))))
     (recurse (bvh-root bvh))))
 
-(defun call-with-contained (function bvh region)
+(defmethod call-with-contained (function (bvh bvh) %region)
   (declare (optimize speed (safety 1)))
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
         (tentative (make-array 256))
+        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-bsize region)) (vy3 (region-bsize region))))
         (i 0))
     (declare (type (integer 0 256) i))
-    (declare (dynamic-extent tentative))
+    (declare (dynamic-extent tentative region))
     (flet ((add (node)
              (when (and (< i 256) node)
                (setf (svref tentative i) node)
@@ -359,46 +364,23 @@
               (when (= 0 i)
                 (return)))))))
 
-(defun call-with-overlapping (function bvh object)
+(defmethod call-with-overlapping (function (bvh bvh) region)
   (declare (optimize speed (safety 1)))
-  (flet ((ensure-vec2 (x)
-           (etypecase x
-             (vec2 x)
-             (vec3 (vsetf (load-time-value (vec 0 0))
-                          (vx3 x) (vy3 x)))
-             (vec4 (vsetf (load-time-value (vec 0 0 0 0))
-                          (vx4 x) (vy4 x))))))
-    (let ((function (etypecase function
-                      (symbol (fdefinition function))
-                      (function function)))
-          (loc (ensure-vec2 (location object)))
-          (siz (ensure-vec2 (bsize object))))
-      (labels ((recurse (node)
-                 (when (and node (node-contains-p* node loc siz))
-                   (let ((o (bvh-node-o node)))
-                     (cond (o
-                            (funcall function o))
-                           (T
-                            (recurse (bvh-node-l node))
-                            (recurse (bvh-node-r node))))))))
-        (recurse (bvh-root bvh))))))
-
-(defmacro do-fitting ((entity bvh region &optional result) &body body)
-  ;; REGION should be a vec2 for a point test, or a vec4 with left/bottom/right/top coordinates.
-  (let ((thunk (gensym "THUNK"))
-        (regiong (gensym "REGION")))
-    `(block NIL
-       (flet ((,thunk (,entity)
-                ,@body))
-         (declare (dynamic-extent #',thunk))
-         (let ((,regiong ,region))
-           (etypecase ,regiong
-             (vec2 (let ((,regiong (3d-vectors::%vec4 (vx2 ,regiong) (vy2 ,regiong) (vx2 ,regiong) (vy2 ,regiong))))
-                     (declare (dynamic-extent ,regiong))
-                     (call-with-contained #',thunk ,bvh ,regiong)))
-             (vec4 (call-with-contained #',thunk ,bvh ,regiong))
-             (trial:entity (call-with-overlapping #',thunk ,bvh ,regiong)))))
-       ,result)))
+  (let ((function (etypecase function
+                    (symbol (fdefinition function))
+                    (function function)))
+        (loc (3d-vectors::%vec2 (vx3 region) (vy3 region)))
+        (siz (3d-vectors::%vec2 (vx3 (region-bsize region)) (vy3 (region-bsize region)))))
+    (declare (dynamic-extent loc siz))
+    (labels ((recurse (node)
+               (when (and node (node-contains-p* node loc siz))
+                 (let ((o (bvh-node-o node)))
+                   (cond (o
+                          (funcall function o))
+                         (T
+                          (recurse (bvh-node-l node))
+                          (recurse (bvh-node-r node))))))))
+      (recurse (bvh-root bvh)))))
 
 (defstruct (bvh-iterator
             (:constructor make-bvh-iterator (bvh region))
@@ -626,7 +608,7 @@
       (node-remove-and-reinsert bvh node best)
       T)))
 
-(defun bvh-reinsert-all (bvh &optional (rounds 1))
+(defmethod reoptimize ((bvh bvh) &key (rounds 1))
   (dotimes (i rounds bvh)
     (labels ((descend (node)
                (node-reinsert-to-best node bvh)

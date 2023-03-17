@@ -20,9 +20,11 @@
    #:leave
    #:update
    #:call-with-contained
+   #:call-with-overlapping
    #:region
    #:region-bsize
-   #:do-contained))
+   #:do-contained
+   #:do-overlapping))
 
 (in-package #:org.shirakumo.flare.space)
 
@@ -33,11 +35,12 @@
 
 (defgeneric check (container))
 (defgeneric clear (container))
-(defgeneric reoptimize (container))
+(defgeneric reoptimize (container &key))
 (defgeneric enter (object container))
 (defgeneric leave (object container))
 (defgeneric update (object container))
 (defgeneric call-with-contained (function container region))
+(defgeneric call-with-overlapping (function container region))
 
 (defstruct (region
             (:include vec3)
@@ -127,5 +130,18 @@
        (declare (dynamic-extent #',thunk))
        (with-region (,regiong)
          (ensure-region ,region ,regiong)
-         (call-with-contained #',thunk ,container ,regiong))
-       ,result)))
+         (block NIL
+           (call-with-contained #',thunk ,container ,regiong)
+           ,result)))))
+
+(defmacro do-overlapping ((element container region &optional result) &body body)
+  (let ((thunk (gensym "THUNK"))
+        (regiong (gensym "REGION")))
+    `(flet ((,thunk (,element)
+              ,@body))
+       (declare (dynamic-extent #',thunk))
+       (with-region (,regiong)
+         (ensure-region ,region ,regiong)
+         (block NIL
+           (call-with-overlapping #',thunk ,container ,regiong)
+           ,result)))))
