@@ -8,7 +8,21 @@
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.flare.matrix)
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))
-  (:export))
+  (:export
+   #:location
+   #:bsize
+   #:radius
+   #:ensure-region
+   #:check
+   #:clear
+   #:reoptimize
+   #:enter
+   #:leave
+   #:update
+   #:call-with-contained
+   #:region
+   #:region-bsize
+   #:do-contained))
 
 (in-package #:org.shirakumo.flare.space)
 
