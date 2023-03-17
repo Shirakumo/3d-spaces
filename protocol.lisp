@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:org.shirakumo.flare.space
+(defpackage #:org.shirakumo.fraf.trial.space
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.flare.matrix)
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))

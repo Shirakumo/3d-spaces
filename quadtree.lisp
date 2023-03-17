@@ -1,3 +1,27 @@
+(defpackage #:org.shirakumo.fraf.trial.quadtree
+  (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+  (:export
+   #:quadtree
+   #:make-quadtree
+   #:make-quadtree-at
+   #:quadtree-insert
+   #:quadtree-remove
+   #:quadtree-update
+   #:quadtree-find-all
+   #:quadtree-find-overlaps
+   #:quadtree-find-overlaps-in
+   #:quadtree-find-contained
+   #:quadtree-find-contained-in
+   #:quadtree-find-for
+   #:quadtree-check
+   #:quadtree-print
+   #:quadtree-lines
+   #:quadtree-reinsert-all
+   #:call-all
+   #:call-with-region
+   #:call-with-area
+   #:call-with-object))
+
 (in-package #:org.shirakumo.fraf.trial.quadtree)
 
 (declaim (inline make-object-vector))
