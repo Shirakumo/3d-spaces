@@ -226,3 +226,228 @@ See REGION (type)")
 The object must implement a method for at least LOCATION and BSIZE.
 
 See REGION (type)"))
+
+(in-package #:org.shirakumo.fraf.trial.space.bvh2)
+
+(docs:define-docs
+  (type bvh
+    "A binary Bounding Volume Hierarchy in 2D.
+
+Each node in the tree is represented by an axis aligned bounding box
+and may either contain a single object or two child nodes.
+
+The tree does not automatically rebalance when objects move and may
+not be optimal after all objects are inserted. Calling REOPTIMIZE will
+attempt to shuffle the tree around for better search traversal
+time. It is recommended to call REOPTIMIZE with :ROUNDS 10 or similar,
+to optimise the tree after first building it.
+
+There is no limit to the area that the tree can span and no canonical
+center to it. The tree will automatically expand and contract as
+needed to fit all objects.
+
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER
+See MAKE-BVH
+See BVH-INSERT
+See BVH-REMOVE
+See BVH-UPDATE
+See BVH-LINES")
+  
+  (function make-bvh
+    "Creates a fresh BVH2.
+
+See BVH (type)")
+  
+  (function bvh-insert
+    "Fast track for ENTER.
+
+See BVH (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
+  
+  (function bvh-remove
+    "Fast track for LEAVE.
+
+See BVH (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
+  
+  (function bvh-update
+    "Fast track for UPDATE.
+
+See BVH (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE")
+  
+  (function bvh-lines
+    "Debug function.
+
+Returns a list of lists where every two entries constitute a
+line. Each entry is made up of a VEC3 for its position and a VEC4 for
+its color.
+
+The lines draw up the BVH nodes with the colour corresponding to the
+node depth.
+
+See BVH (type)"))
+
+(in-package #:org.shirakumo.fraf.trial.space.quadtree)
+
+(docs:define-docs
+  (type quadtree
+    "
+
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER
+See MAKE-QUADTREE
+See MAKE-QUADTREE-AT
+See QUADTREE-INSERT
+See QUADTREE-REMOVE
+See QUADTREE-UPDATE
+See QUADTREE-FIND-ALL
+See QUADTREE-FIND-OVERLAPS
+See QUADTREE-FIND-OVERLAPS-IN
+See QUADTREE-FIND-CONTAINED
+See QUADTREE-FIND-CONTAINED-IN
+See QUADTREE-FIND-FOR
+See QUADTREE-LINES")
+  
+  (function make-quadtree
+    "
+
+See QUADTREE (type)")
+  
+  (function make-quadtree-at
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-insert
+    "Fast track for ENTER.
+
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
+  BVH
+  (function quadtree-remove
+    "Fast track for LEAVE.
+
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
+  
+  (function quadtree-update
+    "Fast track for UPDATE.
+
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE")
+  
+  (function quadtree-find-all
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-find-overlaps
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-find-overlaps-in
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-find-contained
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-find-contained-in
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-find-for
+    "
+
+See QUADTREE (type)")
+  
+  (function quadtree-lines
+    "Debug function.
+
+Returns a list of lists where every two entries constitute a
+line. Each entry is made up of a VEC3 for its position and a VEC4 for
+its color.
+
+The lines draw up the quadtree nodes with the colour corresponding to
+the node depth.
+
+See QUADTREE (type)"))
+
+(in-package #:org.shirakumo.fraf.trial.space.grid3)
+
+(docs:define-docs
+  (type grid
+    "A uniform bounded grid in 3D.
+
+This is one of the simplest possible spatial structures, with
+constant-time insertion, and in the general case constant-time removal
+and update.
+
+However, the structure does not automatically tune itself and ensuring
+good performance requires user input. Specifically, the search time
+performance is very sensitive to the cell size. Too coarse and too many
+objects need to be searched. Too fine and a lot of space is wasted and
+objects may be missed for fine searches.
+
+If an object is bigger than the cell size, it may be missed for
+certain searches, as the search only guarantees finding the objects in
+the immediate neighbourhood of a cell.
+
+The implementation here uses a dense array, meaning it requires
+at least W*H*D+N storage.
+
+You can update all properties of the grid, with REOPTIMIZE or
+GRID-RESIZE and GRID-MOVE. Doing so is equivalent to creating a new
+grid and inserting all previous entities into it. If REOPTIMIZE is
+called without any arguments, the grid will recenter and refit itself
+to the computed ideal bounds for all contained objects and the cell
+size will adjust itself to be as big as the largest object (if any).
+
+Thus it can be a valid strategy to just create a grid, insert all your
+objects, and then call REOPTIMIZE to determine the best parameters.
+
+Objects that are outside the grid's limits will simply be clamped to
+the nearest cell within the grid. Beware of degenerating performance
+if your objects do not fit within the grid's size.
+
+See QUADTREE (type)")
+  
+  (function make-grid
+    "Creates a new grid.
+
+If no LOCATION is passed, it is centered at the origin. If no BSIZE is
+passed, it is sized to a half-size of 100 in every direction.
+
+See GRID (type)")
+  
+  (function grid-resize
+    "Resizes the grid to the specified half-size and cell size.
+
+See GRID (type)")
+  
+  (function grid-move
+    "Moves the grid's center to the specified location.
+
+Note that this will not change the grid's half-size or cell size.
+
+See GRID (type)")
+  
+  (function grid-insert
+    "Fast track for ENTER.
+
+See GRID (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
+  
+  (function grid-remove
+    "Fast track for LEAVE.
+
+See GRID (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
+  
+  (function grid-update
+    "Fast track for UPDATE.
+
+See GRID (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE"))
