@@ -26,26 +26,78 @@
 
 (define-test bvh2
   :parent 2d
-  (test-container-generic #'bvh2:make-bvh))
+  (test-container-generic #'bvh2:make-bvh #'box2))
 
 (define-test quadtree
   :parent 2d
-  (test-container-generic #'quadtree:make-quadtree))
+  (test-container-generic #'quadtree:make-quadtree #'box2))
 
 (define-test grid3
   :parent 3d
-  (test-container-generic #'grid3:make-grid 10))
+  (test-container-generic (lambda () (grid3:make-grid 10)) #'box3))
 
-(defun test-container-generic (constructor &rest args)
-  (flet ((construct ()
-           (apply constructor args)))
-    (of-type space:container (construct))
-    (finish (space:check (construct)))
-    (finish (space:clear (construct)))
-    (finish (space:reoptimize (construct)))
-    (finish (space:do-all (object (construct))
-              (false object)))
-    (finish (space:do-contained (object (construct) (space:region 0 0 0 0 0 0))
-              (false object)))
-    (finish (space:do-overlapping (object (construct) (space:region 0 0 0 0 0 0))
-              (false object)))))
+(defclass box3 ()
+  ((location :initarg :location :initform (vec 0 0 0) :accessor space:location)
+   (bsize :initarg :bsize :initform (vec 0 0 0) :accessor space:bsize)))
+
+(defun box3 (&optional (location (vec 0 0 0)) (bsize (vec 0 0 0)))
+  (make-instance 'box3 :location location :bsize bsize))
+
+(defclass box2 ()
+  ((location :initarg :location :initform (vec 0 0) :accessor space:location)
+   (bsize :initarg :bsize :initform (vec 0 0) :accessor space:bsize)))
+
+(defun box2 (&optional (location (vec 0 0)) (bsize (vec 0 0)))
+  (make-instance 'box2 :location (vxy location) :bsize (vxy bsize)))
+
+(defun test-container-generic (constructor object-constructor)
+  (flet ((make-container ()
+           (funcall constructor))
+         (make-object (&rest args)
+           (apply object-constructor args)))
+    (group (empty)
+      (of-type space:container (make-container))
+      (finish (space:check (make-container)))
+      (finish (space:clear (make-container)))
+      (finish (space:reoptimize (make-container)))
+      (finish (space:do-all (object (make-container))
+                (false object)))
+      (finish (space:do-contained (object (make-container) (space:region 0 0 0 0 0 0))
+                (false object)))
+      (finish (space:do-overlapping (object (make-container) (space:region 0 0 0 0 0 0))
+                (false object))))
+
+    (group (single)
+      (let ((container (make-container))
+            (box (make-object)))
+        (finish (space:enter box container))
+        (finish (space:do-all (object container)
+                  (is eq box object)))
+        (finish (space:do-contained (object container box)
+                  (is eq box object)))
+        (finish (space:do-overlapping (object container box)
+                  (is eq box object)))
+        (finish (space:leave box container))
+        (finish (space:do-all (object container)
+                  (false object)))))
+
+    (group (fixed)
+      (let ((container (make-container))
+            (a (make-object (vec 0 0 0) (vec 5 5 5)))
+            (b (make-object (vec 15 0 0) (vec 5 5 5)))
+            (c (make-object (vec 300 0 0) (vec 5 5 5))))
+        (finish (space:enter (list a b c) container))
+        (finish (space:do-all (object container)
+                  (true (or (eq object a) (eq object b) (eq object c)))))
+        (finish (space:do-overlapping (object container (space:region 0 0 0 10 10 10))
+                  (false (eq object c))))))
+
+    (group (randomized)
+      (let ((container (make-container))
+            (objects (loop repeat 100
+                           collect (make-object (vrand (vec 0 0 0) 100) (vrand (vec 0 0 0) 100)))))
+        (finish (space:enter objects container))
+        (finish (space:do-all (object container)
+                  (true (find object objects))))
+        (finish (space:do-overlapping (object container (space:region -100 -100 -100 200 200 200))
+                  (true (find object objects))))))))
