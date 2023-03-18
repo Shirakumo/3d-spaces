@@ -322,7 +322,7 @@ See QUADTREE (type)")
     "Fast track for ENTER.
 
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
-  BVH
+  
   (function quadtree-remove
     "Fast track for LEAVE.
 

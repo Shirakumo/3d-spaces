@@ -1,0 +1,373 @@
+<!DOCTYPE html> <html lang="EN"> <head> <meta charset="utf-8"> <title>3d Spaces</title> <style>html body{margin:0 auto 0 auto;padding:20px;max-width:1024px;font-family:sans-serif;font-size:14pt;overflow-y:scroll;}html body a{text-decoration:none;}html body a[href]{color:#0055AA;}html body a[href]:hover{color:#0088EE;}html body pre{background:#FAFAFA;border:1px solid #DDDDDD;padding:0.75em;overflow-x:auto;}html body pre >code a[href]{color:#223388;}article.project h1{font-size:1.7em;}article.project h1,article.project h2,article.project h3,article.project h4,article.project h5,article.project h6{margin:0.2em 0 0.1em 0;text-indent:1em;}article.project >header{text-align:center;}article.project >header img.logo{display:block;margin:auto;max-height:170px;}article.project >header h1{display:inline-block;text-indent:0;font-size:2.5em;}article.project >header .version{vertical-align:bottom;}article.project >header .languages{margin-top:-0.5em;text-transform:capitalize;}article.project >header .description{margin:0;}article.project >header .pages{margin-top:0.5em;font-size:1.2em;text-transform:capitalize;}article.project >header .pages a{display:inline-block;padding:0 0.2em;}article.project >section{margin:1em 0 1em 0;}article.project #index >ul{list-style:none;margin:0;padding:0;}article.project .row label{display:inline-block;min-width:8em;}article.project #system .row{display:flex;}article.project #system #dependencies{display:inline;margin:0;padding:0;}article.project #system #dependencies li{display:inline;padding:0 0.2em;}article.project #system #author label{vertical-align:top;}article.project #system #author ul{display:inline-block;margin:0;padding:0;list-style:none;}article.definition{margin:1em 0 0 0;}article.definition >header h1,article.definition >header h2,article.definition >header h3,article.definition >header h4,article.definition >header h5,article.definition >header h6{text-indent:0;display:inline-block;}article.definition >header ul{display:inline-block;list-style:none;margin:0;padding:0;}article.definition >header ul li{display:inline-block;padding:0 0.2em 0 0;}article.definition >header .visibility{display:none;}article.definition >header .visibility,article.definition >header .type{text-transform:lowercase;}article.definition >header .source-link{visibility:hidden;float:right;}article.definition >header .source-link:after{visibility:visible;content:"[SRC]";}article.definition .docstring{margin:0 0 0 1em;}article.definition .docstring pre{font-size:0.8em;white-space:pre-wrap;}.definition.package >header ul.nicknames{display:inline-block;list-style:none;margin:0;padding:0 0 0 1em;}.definition.package >header ul.nicknames li{display:inline;}.definition.package >header ul.nicknames:before{content:"(";}.definition.package >header ul.nicknames:after{content:")";}.definition.package ul.definitions{margin:0;list-style:none;padding:0 0 0 0.5em;}.definition.callable >header .name:before,.definition.type >header .name:before{content:"(";font-weight:normal;}.definition.callable >header .arguments:after,.definition.type >header .arguments:after{content:")";}.definition.callable >header .arguments .arguments:before,.definition.type >header .arguments .arguments:before{content:"(";}.definition.callable >header .arguments .argument,.definition.type >header .arguments .argument{padding:0;}.definition.callable >header .arguments .argument.lambda-list-keyword,.definition.type >header .arguments .argument.lambda-list-keyword{color:#991155;}.definition li>mark{background:none;border-left:0.3em solid #0088EE;padding-left:0.3em;display:block;}</style> </head> <body> <article class="project"> <header>   <h1>3d spaces</h1>   <span class="version">1.0.0</span>    <p class="description">A library implementing spatial query structures</p>   </header> <section id="documentation"><article><h1 id="about 3d-spaces">About 3D-Spaces</h1><p>This library implements a number of spatial query data structures; structures that can answer spatial range queries for optimised lookup, particularly suited for games. Often this is used to implement a &quot;broad phase search&quot;.</p><h2 id="how to">How To</h2><p>The library defines a core protocol which every structure (called a <code><a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">container</a></code>) must implement. Every container may also expose additional operations or properties, but it is not required to do so. The library <em>does not</em> provide any object implementations. Instead it is expected that you implement <code><a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALOCATION" class="xref">location</a></code> and <code><a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ABSIZE" class="xref">bsize</a></code> or <code><a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ARADIUS" class="xref">radius</a></code> for your objects to describe their bounding volumes, which the containers will then make use of.</p><p>The following shows a very basic use:</p><code style="display:block" class="code-block" data-language="common lisp"><pre>(defclass box ()
+  ((location :initarg :location :initform (vec 0 0 0) :accessor space:location)
+   (bsize :initarg :bsize :initform (vec 0 0 0) :accessor space:bsize)))
+
+(defun box (&amp;optional (location (vec 0 0 0)) (bsize (vec 0 0 0)))
+  (make-instance 'box :location location :bsize bsize))
+
+(defvar *bvh2* (org.shirakumo.fraf.trial.space.bvh2:make-bvh))
+
+(space:enter (box (vec 10 10 10) (vec 1 2 3)) *bvh2*)
+
+(space:do-all (object *bvh2*)
+  (print object))
+
+(space:do-overlapping (object *bvh2* (space:region 0 0 0 11 11 11))
+  (print object))
+
+(space:do-contained (object *bvh2* (space:region 0 0 0 11 11 11))
+  (print object))
+
+(describe *bvh2*)
+
+(space:clear *bvh2*)</pre></code><p>Every container also implements <a class="external-link" href="https://shinmera.github.io/for">For</a>'s iteration protocol, allowing you to iterate over the containers in an opaque way.</p><h2 id="supported structures">Supported Structures</h2><p>The library supports the following structure types at this point:</p><ul><li><p><code>org.shirakumo.fraf.trial.bvh2:bvh</code><br>A 2D bounding volume hierarchy. You may want to occasionally use <code><a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREOPTIMIZE" class="xref">reoptimize</a></code> to rebalance the tree. The BVH has no size constraints.</p></li><li><p><code>org.shirakumo.fraf.trial.quadtree:quadtree</code><br>A 2D quadtree. The tree will automatically expand and resize as objects are added to it.</p></li><li><p><code>org.shirakumo.fraf.trial.grid3:grid</code><br>A 3D grid. The grid will *not* expand or resize automatically, nor estimate a good grid cell size. It is up to you to specify these properties as suitable for your use case. You may however call <code><a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREOPTIMIZE" class="xref">reoptimize</a></code> at any time to change the grid shape.</p></li></ul><p>Please see their respective packages for additional supported operations.</p></article></section>   <section id="system"> <h2>System Information</h2>  <div class="row"> <label for="version">Version:</label> <a id="version">1.0.0</a> </div>   <div class="row"> <label for="dependencies">Dependencies:</label> <ul id="dependencies"><li><a class="external" href="https://Shinmera.github.io/documentation-utils/">documentation-utils</a></li><li><a class="external" href="https://Shinmera.github.io/3d-vectors/">3d-vectors</a></li><li><a class="external" href="https://Shinmera.github.io/3d-matrices/">3d-matrices</a></li><li><a class="external" href="https://shinmera.github.io/trivial-extensible-sequences/">trivial-extensible-sequences</a></li><li><a class="external" href="https://Shinmera.github.io/for/">for</a></li></ul> </div>   <div class="row" id="author"> <label for="author">Author:</label> <a href="mailto:shinmera@tymoon.eu">Nicolas Hafner</a> </div>   <div class="row"> <label for="license">License:</label> <a id="license" href="https://github.com/shirakumo/3d-spaces/blob/master/LICENSE">zlib</a> </div>   <div class="row"> <label for="homepage">Homepage:</label> <a id="homepage" href="https://shirakumo.github.io/3d-spaces/">https://shirakumo.github.io/3d-spaces/</a> </div>   <div class="row"> <label for="sources">Sources:</label> <a id="sources" href="https://github.com/shirakumo/3d-spaces.git">https://github.com/shirakumo/3d-spaces.git</a> </div>  </section>    <section id="index"> <h2>Definition Index</h2> <ul> <li> <article class="definition package" id="PACKAGE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE"> <header> <h3> <a href="#PACKAGE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE</a> </h3> <ul class="nicknames"></ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition structure" id="STRUCTURE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER"> <header> <span class="visibility">EXTERNAL</span> <span class="type">STRUCTURE</span> <h4 class="name"> <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER">CONTAINER</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L53">Source</a>  </header> <div class="docstring"><pre>Supertype for all containers.
+
+All container types must implement the following functions in addition
+to implementing the iteration protocol of FOR (meaning you can use
+FOR:OVER to iterate over a container as well).
+
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER-P" class="xref">CONTAINER-P</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACHECK" class="xref">CHECK</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACLEAR" class="xref">CLEAR</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREOPTIMIZE" class="xref">REOPTIMIZE</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENTER" class="xref">ENTER</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALEAVE" class="xref">LEAVE</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AUPDATE" class="xref">UPDATE</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-ALL" class="xref">CALL-WITH-ALL</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-CONTAINED" class="xref">CALL-WITH-CONTAINED</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-OVERLAPPING" class="xref">CALL-WITH-OVERLAPPING</a></pre></div> </article> </li>  <li> <article class="definition structure" id="STRUCTURE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:REGION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">STRUCTURE</span> <h4 class="name"> <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION">REGION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L58">Source</a>  </header> <div class="docstring"><pre>Encompasses an axis-aligned region.
+
+This is a VEC3, wherein the coordinates designate the &quot;bottom left&quot;
+corner of the region and its SIZE designates the width height and
+depth of the region.
+
+NOTE: The region, unlike is required of other objects, does not keep
+the data as center and half-size. However, it does implement LOCATION
+and BSIZE to provide those quantities as defined.
+
+See <a href="https://Shinmera.github.io/3d-vectors/#STRUCTURE%203D-VECTORS%3AVEC3" class="xref">3D-VECTORS:VEC3 (type)</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION-SIZE" class="xref">REGION-SIZE</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AFIND-REGION" class="xref">FIND-REGION</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION-OVERLAPS-P" class="xref">REGION-OVERLAPS-P</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION-CONTAINS-P" class="xref">REGION-CONTAINS-P</a></pre></div> </article> </li>  <li> <article class="definition binding" id="BINDING ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">BINDING</span> <h4 class="name"> <a href="#BINDING%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AUPDATE">UPDATE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="file:///home/linus/Projects/cl/for/standard.lisp#103:0">Source</a>  </header> <div class="docstring"><pre>Iterates over a generic sequence using an ITERATOR, with var being symbol macro to the current item.
+
+You may SETF the var to update the item in the sequence, if the underlying iterator
+supports doing so.
+
+Potentially accepts arbitrary arguments, depending on which iterator is selected
+for the respective object.
+
+See FOR-ITERATOR:MAKE-ITERATOR</pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER-P"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER-P">CONTAINER-P</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L53">Source</a>  </header> <div class="docstring"><pre>Returns true if the given object is a container instance.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:FIND-REGION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AFIND-REGION">FIND-REGION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECTS</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L188">Source</a>  </header> <div class="docstring"><pre>Returns a region that encompasses all objects passed as tightly as possible.
+
+Every object must implement a method for at least LOCATION and BSIZE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:REGION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION">REGION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">X</li>    <li class="argument">Y</li>    <li class="argument">Z</li>    <li class="argument">W</li>    <li class="argument">H</li>    <li class="argument">D</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L79">Source</a>  </header> <div class="docstring"><i>No documentation provided.</i></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:REGION-CONTAINS-P"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION-CONTAINS-P">REGION-CONTAINS-P</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">REGION</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L242">Source</a>  </header> <div class="docstring"><pre>Returns true if the region entirely contains the object's axis aligned bounding box.
+
+The object must implement a method for at least LOCATION and BSIZE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:REGION-OVERLAPS-P"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION-OVERLAPS-P">REGION-OVERLAPS-P</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">REGION</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L220">Source</a>  </header> <div class="docstring"><pre>Returns true if the region overlaps with the object's axis aligned bounding box.
+
+The object must implement a method for at least LOCATION and BSIZE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:REGION-SIZE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION-SIZE">REGION-SIZE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">INSTANCE</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L58">Source</a>  </header> <div class="docstring"><pre>Accesses the region's size.
+
+NOTE: unlike BSIZE, this is the *full size* and not a half-size.
+
+See <a href="https://Shinmera.github.io/3d-vectors/#STRUCTURE%203D-VECTORS%3AVEC3" class="xref">3D-VECTORS:VEC3 (type)</a>
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:(SETF REGION-SIZE)"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3A%28SETF%20REGION-SIZE%29">(SETF REGION-SIZE)</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">VALUE</li>    <li class="argument">INSTANCE</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L58">Source</a>  </header> <div class="docstring"><i>No documentation provided.</i></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:BSIZE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ABSIZE">BSIZE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L39">Source</a>  </header> <div class="docstring"><pre>Returns a vec2 or vec3 representing the  half-size of the object's axis-aligned bounding box.
+
+Users should extend this function with methods to provide the correct
+value for their own object representations.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALOCATION" class="xref">LOCATION</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ARADIUS" class="xref">RADIUS</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CALL-WITH-ALL"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-ALL">CALL-WITH-ALL</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">FUNCTION</li>    <li class="argument">CONTAINER</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L49">Source</a>  </header> <div class="docstring"><pre>Calls FUNCTION with every object contained in the container.
+
+See <a href="#MACRO-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ADO-ALL" class="xref">DO-ALL</a>
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CALL-WITH-CONTAINED"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-CONTAINED">CALL-WITH-CONTAINED</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">FUNCTION</li>    <li class="argument">CONTAINER</li>    <li class="argument">REGION</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L50">Source</a>  </header> <div class="docstring"><pre>Calls FUNCTION with every object contained in REGION.
+
+The region is coerced to a region via ENSURE-REGION.
+The function *may* be called with objects that overlap the specified
+region, but *will not* be called with objects that lie entirely
+outside the region.
+
+See <a href="#MACRO-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ADO-CONTAINED" class="xref">DO-CONTAINED</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENSURE-REGION" class="xref">ENSURE-REGION</a>
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a>
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CALL-WITH-OVERLAPPING"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-OVERLAPPING">CALL-WITH-OVERLAPPING</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">FUNCTION</li>    <li class="argument">CONTAINER</li>    <li class="argument">REGION</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L51">Source</a>  </header> <div class="docstring"><pre>Calls FUNCTION with every object contained in REGION.
+
+The region is coerced to a region via ENSURE-REGION.
+The function *will* be called with all objects that overlap the
+specified region, and *will not* be called with objects that lie
+entirely outside the region.
+
+See <a href="#MACRO-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ADO-OVERLAPPING" class="xref">DO-OVERLAPPING</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENSURE-REGION" class="xref">ENSURE-REGION</a>
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a>
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CHECK"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACHECK">CHECK</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">CONTAINER</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L43">Source</a>  </header> <div class="docstring"><pre>Checks the container for validity.
+
+Signals an error if there are problems with the container's internal
+invariants.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CLEAR"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACLEAR">CLEAR</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">CONTAINER</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L44">Source</a>  </header> <div class="docstring"><pre>Clears the container and removes all objects from it.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENSURE-REGION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENSURE-REGION">ENSURE-REGION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">REGION</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L41">Source</a>  </header> <div class="docstring"><pre>Coerces the object to a REGION instance.
+
+If the optional region is passed, the data in that region is updated
+instead of creating a new region instance.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREGION" class="xref">REGION (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENTER">ENTER</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">CONTAINER</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L46">Source</a>  </header> <div class="docstring"><pre>Adds objects to the container.
+
+You may pass an object or a sequence of objects.
+Passing a sequence may be more efficient that passing the objects
+individually.
+
+Entering the same object twice is safe.
+
+Every object must implement a method for at least LOCATION and BSIZE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALEAVE">LEAVE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">CONTAINER</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L47">Source</a>  </header> <div class="docstring"><pre>Removes an object from the container.
+
+You may pass an object or a sequence of objects.
+Passing a sequence may be more efficient that passing the objects
+individually.
+
+Removing the same object twice is safe.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LOCATION"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALOCATION">LOCATION</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L38">Source</a>  </header> <div class="docstring"><pre>Returns a vec2 or vec3 representing the center of the object.
+
+Users should extend this function with methods to provide the correct
+value for their own object representations.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ABSIZE" class="xref">BSIZE</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ARADIUS" class="xref">RADIUS</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:RADIUS"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ARADIUS">RADIUS</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L40">Source</a>  </header> <div class="docstring"><pre>Returns a single-float representing the radius of the object's bounding sphere.
+
+Users should extend this function with methods to provide the correct
+value for their own object representations.
+
+If no method is provided it is computed automatically from the BSIZE.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALOCATION" class="xref">LOCATION</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ABSIZE" class="xref">BSIZE</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:REOPTIMIZE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AREOPTIMIZE">REOPTIMIZE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">CONTAINER</li>    <li class="argument lambda-list-keyword">&amp;KEY</li>    <li class="argument">LOCATION</li>    <li class="argument">BSIZE</li>    <li class="argument">CELL-SIZE</li>    <li class="argument">ROUNDS</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L45">Source</a>  </header> <div class="docstring"><pre>Reoptimizes the container to fit its objects better.
+
+Each container type may accept specific arguments to control the
+opitimization.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition generic-function callable" id="GENERIC-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">GENERIC-FUNCTION</span> <h4 class="name"> <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AUPDATE">UPDATE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">CONTAINER</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L48">Source</a>  </header> <div class="docstring"><pre>Updates the objects in the container.
+
+You may pass an object or a sequence of objects.
+Passing a sequence may be more efficient that passing the objects
+individually.
+
+You should call this function whenever the position or bounding size
+of the object changes. If you do not notify the container of changes
+like this, range queries may not give correct results.
+
+Calling UPDATE on an object that is not currently in the container has
+undefined consequences.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">CONTAINER (type)</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:DO-ALL"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ADO-ALL">DO-ALL</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <ul class="arguments"> <li class="argument">ELEMENT</li>  <li class="argument">CONTAINER</li>  <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>  <li class="argument">RESULT</li> </ul>    <li class="argument lambda-list-keyword">&amp;BODY</li>    <li class="argument">BODY</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L155">Source</a>  </header> <div class="docstring"><pre>Convenience macro to iterate over all objects in the container.
+
+Returns the RETURN value, and executes BODY in a BLOCK NIL context.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-ALL" class="xref">CALL-WITH-ALL</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:DO-CONTAINED"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ADO-CONTAINED">DO-CONTAINED</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <ul class="arguments"> <li class="argument">ELEMENT</li>  <li class="argument">CONTAINER</li>  <li class="argument">REGION</li>  <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>  <li class="argument">RESULT</li> </ul>    <li class="argument lambda-list-keyword">&amp;BODY</li>    <li class="argument">BODY</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L164">Source</a>  </header> <div class="docstring"><pre>Convenience macro to iterate over objects contained in the region.
+
+Returns the RETURN value, and executes BODY in a BLOCK NIL context.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-CONTAINED" class="xref">CALL-WITH-CONTAINED</a></pre></div> </article> </li>  <li> <article class="definition macro callable" id="MACRO-FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:DO-OVERLAPPING"> <header> <span class="visibility">EXTERNAL</span> <span class="type">MACRO</span> <h4 class="name"> <a href="#MACRO-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ADO-OVERLAPPING">DO-OVERLAPPING</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <ul class="arguments"> <li class="argument">ELEMENT</li>  <li class="argument">CONTAINER</li>  <li class="argument">REGION</li>  <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>  <li class="argument">RESULT</li> </ul>    <li class="argument lambda-list-keyword">&amp;BODY</li>    <li class="argument">BODY</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/protocol.lisp#L176">Source</a>  </header> <div class="docstring"><pre>Convenience macro to iterate over objects overlapping the region.
+
+Returns the RETURN value, and executes BODY in a BLOCK NIL context.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACALL-WITH-OVERLAPPING" class="xref">CALL-WITH-OVERLAPPING</a></pre></div> </article> </li> </ul> </article> </li>  <li> <article class="definition package" id="PACKAGE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2"> <header> <h3> <a href="#PACKAGE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2</a> </h3> <ul class="nicknames"></ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition structure" id="STRUCTURE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2:BVH"> <header> <span class="visibility">EXTERNAL</span> <span class="type">STRUCTURE</span> <h4 class="name"> <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH">BVH</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/bvh2.lisp#L215">Source</a>  </header> <div class="docstring"><pre>A binary Bounding Volume Hierarchy in 2D.
+
+Each node in the tree is represented by an axis aligned bounding box
+and may either contain a single object or two child nodes.
+
+The tree does not automatically rebalance when objects move and may
+not be optimal after all objects are inserted. Calling REOPTIMIZE will
+attempt to shuffle the tree around for better search traversal
+time. It is recommended to call REOPTIMIZE with :ROUNDS 10 or similar,
+to optimise the tree after first building it.
+
+There is no limit to the area that the tree can span and no canonical
+center to it. The tree will automatically expand and contract as
+needed to fit all objects.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3AMAKE-BVH" class="xref">MAKE-BVH</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-INSERT" class="xref">BVH-INSERT</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-REMOVE" class="xref">BVH-REMOVE</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-UPDATE" class="xref">BVH-UPDATE</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-LINES" class="xref">BVH-LINES</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2:BVH-INSERT"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-INSERT">BVH-INSERT</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">BVH</li>    <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/bvh2.lisp#L223">Source</a>  </header> <div class="docstring"><pre>Fast track for ENTER.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH" class="xref">BVH (type)</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENTER" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2:BVH-LINES"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-LINES">BVH-LINES</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">BVH</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/bvh2.lisp#L274">Source</a>  </header> <div class="docstring"><pre>Debug function.
+
+Returns a list of lists where every two entries constitute a
+line. Each entry is made up of a VEC3 for its position and a VEC4 for
+its color.
+
+The lines draw up the BVH nodes with the colour corresponding to the
+node depth.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH" class="xref">BVH (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2:BVH-REMOVE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-REMOVE">BVH-REMOVE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">BVH</li>    <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/bvh2.lisp#L234">Source</a>  </header> <div class="docstring"><pre>Fast track for LEAVE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH" class="xref">BVH (type)</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALEAVE" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2:BVH-UPDATE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH-UPDATE">BVH-UPDATE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">BVH</li>    <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/bvh2.lisp#L243">Source</a>  </header> <div class="docstring"><pre>Fast track for UPDATE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH" class="xref">BVH (type)</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AUPDATE" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2:MAKE-BVH"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3AMAKE-BVH">MAKE-BVH</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/bvh2.lisp#L215">Source</a>  </header> <div class="docstring"><pre>Creates a fresh BVH2.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.BVH2%3ABVH" class="xref">BVH (type)</a></pre></div> </article> </li> </ul> </article> </li>  <li> <article class="definition package" id="PACKAGE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE"> <header> <h3> <a href="#PACKAGE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE</a> </h3> <ul class="nicknames"></ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition structure" id="STRUCTURE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">STRUCTURE</span> <h4 class="name"> <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE">QUADTREE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L424">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ACONTAINER" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AMAKE-QUADTREE" class="xref">MAKE-QUADTREE</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AMAKE-QUADTREE-AT" class="xref">MAKE-QUADTREE-AT</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-INSERT" class="xref">QUADTREE-INSERT</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-REMOVE" class="xref">QUADTREE-REMOVE</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-UPDATE" class="xref">QUADTREE-UPDATE</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-ALL" class="xref">QUADTREE-FIND-ALL</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-OVERLAPS" class="xref">QUADTREE-FIND-OVERLAPS</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-OVERLAPS-IN" class="xref">QUADTREE-FIND-OVERLAPS-IN</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-CONTAINED" class="xref">QUADTREE-FIND-CONTAINED</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-CONTAINED-IN" class="xref">QUADTREE-FIND-CONTAINED-IN</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-FOR" class="xref">QUADTREE-FIND-FOR</a>
+See <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-LINES" class="xref">QUADTREE-LINES</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:MAKE-QUADTREE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AMAKE-QUADTREE">MAKE-QUADTREE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L424">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:MAKE-QUADTREE-AT"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AMAKE-QUADTREE-AT">MAKE-QUADTREE-AT</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">LOCATION</li>    <li class="argument">SIZE</li>    <li class="argument lambda-list-keyword">&amp;KEY</li>    <li class="argument">MIN-SIZE</li>    <li class="argument">THRESHOLD</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L432">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-FIND-ALL"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-ALL">QUADTREE-FIND-ALL</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">VECTOR</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L479">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-FIND-CONTAINED"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-CONTAINED">QUADTREE-FIND-CONTAINED</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">REGION</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">VECTOR</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L510">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-FIND-CONTAINED-IN"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-CONTAINED-IN">QUADTREE-FIND-CONTAINED-IN</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">LOCATION</li>    <li class="argument">SIZE</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">VECTOR</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L522">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-FIND-FOR"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-FOR">QUADTREE-FIND-FOR</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">OBJECT</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">VECTOR</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L506">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-FIND-OVERLAPS"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-OVERLAPS">QUADTREE-FIND-OVERLAPS</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">REGION</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">VECTOR</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L485">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-FIND-OVERLAPS-IN"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-FIND-OVERLAPS-IN">QUADTREE-FIND-OVERLAPS-IN</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">LOCATION</li>    <li class="argument">SIZE</li>    <li class="argument lambda-list-keyword">&amp;OPTIONAL</li>    <li class="argument">VECTOR</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L497">Source</a>  </header> <div class="docstring"><pre>
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-INSERT"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-INSERT">QUADTREE-INSERT</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L452">Source</a>  </header> <div class="docstring"><pre>Fast track for ENTER.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENTER" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-LINES"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-LINES">QUADTREE-LINES</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L554">Source</a>  </header> <div class="docstring"><pre>Debug function.
+
+Returns a list of lists where every two entries constitute a
+line. Each entry is made up of a VEC3 for its position and a VEC4 for
+its color.
+
+The lines draw up the quadtree nodes with the colour corresponding to
+the node depth.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-REMOVE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-REMOVE">QUADTREE-REMOVE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L459">Source</a>  </header> <div class="docstring"><pre>Fast track for LEAVE.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALEAVE" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE:QUADTREE-UPDATE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE-UPDATE">QUADTREE-UPDATE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">TREE</li>    <li class="argument">OBJECT</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/quadtree.lisp#L467">Source</a>  </header> <div class="docstring"><pre>Fast track for UPDATE.
+
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AUPDATE" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE</a></pre></div> </article> </li> </ul> </article> </li>  <li> <article class="definition package" id="PACKAGE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3"> <header> <h3> <a href="#PACKAGE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3</a> </h3> <ul class="nicknames"></ul>  </header> <div class="docstring"><i>No documentation provided.</i></div> <ul class="definitions"> <li> <article class="definition structure" id="STRUCTURE ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:GRID"> <header> <span class="visibility">EXTERNAL</span> <span class="type">STRUCTURE</span> <h4 class="name"> <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID">GRID</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments"></ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L24">Source</a>  </header> <div class="docstring"><pre>A uniform bounded grid in 3D.
+
+This is one of the simplest possible spatial structures, with
+constant-time insertion, and in the general case constant-time removal
+and update.
+
+However, the structure does not automatically tune itself and ensuring
+good performance requires user input. Specifically, the search time
+performance is very sensitive to the cell size. Too coarse and too many
+objects need to be searched. Too fine and a lot of space is wasted and
+objects may be missed for fine searches.
+
+If an object is bigger than the cell size, it may be missed for
+certain searches, as the search only guarantees finding the objects in
+the immediate neighbourhood of a cell.
+
+The implementation here uses a dense array, meaning it requires
+at least W*H*D+N storage.
+
+You can update all properties of the grid, with REOPTIMIZE or
+GRID-RESIZE and GRID-MOVE. Doing so is equivalent to creating a new
+grid and inserting all previous entities into it. If REOPTIMIZE is
+called without any arguments, the grid will recenter and refit itself
+to the computed ideal bounds for all contained objects and the cell
+size will adjust itself to be as big as the largest object (if any).
+
+Thus it can be a valid strategy to just create a grid, insert all your
+objects, and then call REOPTIMIZE to determine the best parameters.
+
+Objects that are outside the grid's limits will simply be clamped to
+the nearest cell within the grid. Beware of degenerating performance
+if your objects do not fit within the grid's size.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.QUADTREE%3AQUADTREE" class="xref">QUADTREE (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:GRID-INSERT"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID-INSERT">GRID-INSERT</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">GRID</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L71">Source</a>  </header> <div class="docstring"><pre>Fast track for ENTER.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID" class="xref">GRID (type)</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AENTER" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:GRID-MOVE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID-MOVE">GRID-MOVE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">GRID</li>    <li class="argument">LOCATION</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L50">Source</a>  </header> <div class="docstring"><pre>Moves the grid's center to the specified location.
+
+Note that this will not change the grid's half-size or cell size.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID" class="xref">GRID (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:GRID-REMOVE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID-REMOVE">GRID-REMOVE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">GRID</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L91">Source</a>  </header> <div class="docstring"><pre>Fast track for LEAVE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID" class="xref">GRID (type)</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3ALEAVE" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:GRID-RESIZE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID-RESIZE">GRID-RESIZE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">GRID</li>    <li class="argument lambda-list-keyword">&amp;KEY</li>    <li class="argument">BSIZE</li>    <li class="argument">CELL-SIZE</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L47">Source</a>  </header> <div class="docstring"><pre>Resizes the grid to the specified half-size and cell size.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID" class="xref">GRID (type)</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:GRID-UPDATE"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID-UPDATE">GRID-UPDATE</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">OBJECT</li>    <li class="argument">GRID</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L102">Source</a>  </header> <div class="docstring"><pre>Fast track for UPDATE.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID" class="xref">GRID (type)</a>
+See <a href="#GENERIC-FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE%3AUPDATE" class="xref">ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE</a></pre></div> </article> </li>  <li> <article class="definition function callable" id="FUNCTION ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3:MAKE-GRID"> <header> <span class="visibility">EXTERNAL</span> <span class="type">FUNCTION</span> <h4 class="name"> <a href="#FUNCTION%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AMAKE-GRID">MAKE-GRID</a> </h4> <ul class="qualifiers"></ul> <ul class="arguments">  <li class="argument">CELL-SIZE</li>    <li class="argument lambda-list-keyword">&amp;KEY</li>    <li class="argument">LOCATION</li>    <li class="argument">BSIZE</li>  </ul>  <a class="source-link" href="https://github.com/shirakumo/3d-spaces/blob/master/grid3.lisp#L44">Source</a>  </header> <div class="docstring"><pre>Creates a new grid.
+
+If no LOCATION is passed, it is centered at the origin. If no BSIZE is
+passed, it is sized to a half-size of 100 in every direction.
+
+See <a href="#STRUCTURE%20ORG.SHIRAKUMO.FRAF.TRIAL.SPACE.GRID3%3AGRID" class="xref">GRID (type)</a></pre></div> </article> </li> </ul> </article> </li> </ul> </section>  </article> <script>window.addEventListener("DOMContentLoaded", function(){
+    var unmarkElement = function(el){
+        if(el.tagName === "mark" || el.tagName === "MARK"){
+            [].forEach.call(el.childNodes, function(child){
+                el.parentNode.insertBefore(child, el);
+            });
+            el.parentNode.removeChild(el);
+        }else if(el.parentNode.tagName === "mark"){
+            return unmarkElement(el.parentNode);
+        }
+        return null;
+    }
+
+    var unmarkAll = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("mark"), unmarkElement);
+    }
+    
+    var markElement = function(el){
+        if(el.parentNode.tagName === "mark" || el.parentNode.tagName === "MARK"){
+            return el.parentNode;
+        } else {
+            unmarkAll();
+            var marked = document.createElement("mark");
+            el.parentNode.insertBefore(marked, el);
+            marked.appendChild(el);
+            return marked;
+        }
+    }
+
+    var markFragmented = function(){
+        if(window.location.hash){
+            var el = document.getElementById(decodeURIComponent(window.location.hash.substr(1)));
+            if(el) markElement(el);
+        }
+    }
+
+    var registerXrefLink = function(link){
+        var el = document.getElementById(decodeURIComponent(link.getAttribute("href").substr(1)));
+        if(el){
+            link.addEventListener("click", function(){
+                markElement(el);
+            });
+        }
+    }
+
+    var registerXrefLinks = function(root){
+        root = root || document;
+        [].forEach.call(root.querySelectorAll("a.xref"), registerXrefLink);
+    }
+
+    markFragmented();
+    registerXrefLinks();
+}); </script> </body> </html> 

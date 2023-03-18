@@ -37,11 +37,11 @@ Every container also implements "For"(https://shinmera.github.io/for)'s iteratio
 ## Supported Structures
 The library supports the following structure types at this point:
 
-- ``bvh2``
+- ``org.shirakumo.fraf.trial.bvh2:bvh``
   A 2D bounding volume hierarchy. You may want to occasionally use ``reoptimize`` to rebalance the tree. The BVH has no size constraints.
-- ``quadtree``
+- ``org.shirakumo.fraf.trial.quadtree:quadtree``
   A 2D quadtree. The tree will automatically expand and resize as objects are added to it.
-- ``grid3``
+- ``org.shirakumo.fraf.trial.grid3:grid``
   A 3D grid. The grid will *not* expand or resize automatically, nor estimate a good grid cell size. It is up to you to specify these properties as suitable for your use case. You may however call ``reoptimize`` at any time to change the grid shape.
 
 Please see their respective packages for additional supported operations.
