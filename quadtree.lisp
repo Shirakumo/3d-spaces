@@ -6,6 +6,7 @@
 
 (defpackage #:org.shirakumo.fraf.trial.space.quadtree
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+  (:shadow #:region-overlaps-p #:region-contains-p)
   (:export
    #:quadtree
    #:make-quadtree
@@ -691,7 +692,7 @@
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
-        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-bsize region)) (vy3 (region-bsize region)))))
+        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain T))
       (funcall function object))))
@@ -700,7 +701,7 @@
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
-        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-bsize region)) (vy3 (region-bsize region)))))
+        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain NIL))
       (funcall function object))))

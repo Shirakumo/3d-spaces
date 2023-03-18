@@ -116,9 +116,9 @@
       (vector-push-extend object old))
     (clrhash (grid-table grid))
     (unless (and location bsize)
-      (multiple-value-bind (centroid centroid-bsize) (find-centroid old)
-        (unless location (setf location centroid))
-        (unless bsize (setf bsize centroid-bsize))))
+      (let ((region (find-region old)))
+        (unless location (setf location (v- region (region-size region))))
+        (unless bsize (setf bsize (v* (region-size region) 0.5)))))
     (let* ((c (grid-cell grid))
            (w (ceiling (* 2.0 (vx bsize)) c))
            (h (ceiling (* 2.0 (vy bsize)) c))
@@ -164,10 +164,10 @@
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
-        (bsize (region-bsize region))
+        (size (region-size region))
         (data (grid-data grid)))
     (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
-      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 bsize)) (+ (vy3 region) (vy3 bsize)) (+ (vz3 region) (vz3 bsize)))
+      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 size)) (+ (vy3 region) (vy3 size)) (+ (vz3 region) (vz3 size)))
         (with-nesting
           (loop for z from z- below z+
                 for zi = (the (unsigned-byte 32) (* z w h))
@@ -186,10 +186,10 @@
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
-        (bsize (region-bsize region))
+        (size (region-size region))
         (data (grid-data grid)))
     (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
-      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 bsize)) (+ (vy3 region) (vy3 bsize)) (+ (vz3 region) (vz3 bsize)))
+      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 size)) (+ (vy3 region) (vy3 size)) (+ (vz3 region) (vz3 size)))
         ;; We expand the search cells by one to ensure we grab objects that overlap
         ;; into the space from outside, since we store bottom left corners only.
         (setf x- (max 0 (1- x-)))

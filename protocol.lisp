@@ -25,11 +25,13 @@
    #:container
    #:container-p
    #:region
-   #:region-bsize
+   #:region-size
    #:do-all
    #:do-contained
    #:do-overlapping
-   #:find-centroid))
+   #:find-region
+   #:region-overlaps-p
+   #:region-contains-p))
 
 (in-package #:org.shirakumo.fraf.trial.space)
 
@@ -55,47 +57,47 @@
 (declaim (inline %region))
 (defstruct (region
             (:include vec3)
-            (:constructor %region (3d-vectors::%vx3 3d-vectors::%vy3 3d-vectors::%vz3 bsize))
+            (:constructor %region (3d-vectors::%vx3 3d-vectors::%vy3 3d-vectors::%vz3 size))
             (:predicate NIL)
             (:copier NIL))
-  (bsize NIL :type vec3))
+  (size NIL :type vec3))
 
 (defmethod print-object ((object region) stream)
-  (let ((bsize (region-bsize object)))
+  (let ((size (region-size object)))
     (prin1 (list 'region
                  (vx object) (vy object) (vz object)
-                 (vx bsize) (vy bsize) (vz bsize))
+                 (vx size) (vy size) (vz size))
            stream)))
 
 (defmethod make-load-form ((region region) &optional environment)
   (declare (ignore environment))
-  (let ((bsize (region-bsize region)))
+  (let ((size (region-size region)))
     `(%region ,(vx region) ,(vy region) ,(vz region)
-              ,(vx bsize) ,(vy bsize) ,(vz bsize))))
+              ,(vx size) ,(vy size) ,(vz size))))
 
 (declaim (inline region))
 (defun region (x y z w h d)
   (%region (float x 0f0) (float y 0f0) (float z 0f0) (vec w h d)))
 
-(defmethod location ((object region)) 
-  object)
+(defmethod location ((region region))
+  (nv+ (bsize region) region))
 
-(defmethod bsize ((object region))
-  (region-bsize object))
+(defmethod bsize ((region region))
+  (v* (region-size region) 0.5))
 
 (defmethod ensure-region ((object region) &optional region)
   (cond (region
-         (v<- (region-bsize region) (region-bsize region))
+         (v<- (region-size region) (region-size region))
          (v<- region object))
         (T
          object)))
 
 (defmacro with-region ((var) &body body)
-  (let ((bsize (gensym "BSIZE"))
+  (let ((size (gensym "SIZE"))
         (region (gensym "REGION")))
-    `(let* ((,bsize (3d-vectors::%vec3 0.0 0.0 0.0))
-            (,region (%region 0.0 0.0 0.0 ,bsize)))
-       (declare (dynamic-extent ,bsize ,region))
+    `(let* ((,size (3d-vectors::%vec3 0.0 0.0 0.0))
+            (,region (%region 0.0 0.0 0.0 ,size)))
+       (declare (dynamic-extent ,size ,region))
        (let ((,var ,region))
          ,@body))))
 
@@ -107,21 +109,23 @@
         (bsize (bsize object)))
     (cond (region
            (etypecase location
-             (vec3 (v<- region location))
-             (vec2 (setf (vx3 region) (vx2 location)
-                         (vy3 region) (vy2 location)
+             (vec3 (setf (vx3 region) (- (vx3 location) (vx3 bsize))
+                         (vy3 region) (- (vy3 location) (vy3 bsize))
+                         (vz3 region) (- (vz3 location) (vz3 bsize))))
+             (vec2 (setf (vx3 region) (- (vx2 location) (vx2 bsize))
+                         (vy3 region) (- (vy2 location) (vy2 bsize))
                          (vz3 region) 0.0)))
-           (let ((rbsize (region-bsize region)))
+           (let ((rsize (region-size region)))
              (etypecase bsize
-               (vec3 (v<- rbsize bsize))
-               (vec2 (setf (vx3 rbsize) (vx2 bsize)
-                           (vy3 rbsize) (vy2 bsize)
-                           (vz3 rbsize) 0.0))))
+               (vec3 (setf (vx3 rsize) (* 2.0 (vx3 bsize))
+                           (vy3 rsize) (* 2.0 (vy3 bsize))
+                           (vz3 rsize) (* 2.0 (vz3 bsize))))
+               (vec2 (setf (vx3 rsize) (* 2.0 (vx2 bsize))
+                           (vy3 rsize) (* 2.0 (vy2 bsize))
+                           (vz3 rsize) 0.0))))
            region)
-          ((vec3-p location)
-           (%region (vx location) (vy location) (vz location) (vcopy bsize)))
           (T
-           (%region (vy location) (vy location) 0.0 (vxy_ bsize))))))
+           (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))))
 
 (defmethod check ((container container)))
 (defmethod reoptimize ((container container) &key))
@@ -181,7 +185,7 @@
            (call-with-overlapping #',thunk ,container ,regiong)
            ,result)))))
 
-(defun find-centroid (objects)
+(defun find-region (objects)
   (let ((x- most-positive-single-float)
         (x+ most-negative-single-float)
         (y- most-positive-single-float)
@@ -199,8 +203,49 @@
         (expand (location object) (bsize object)))
       (when (= x- most-positive-single-float)
         (setf x- 0.0 x+ 0.0 y- 0.0 y+ 0.0 z- 0.0 z+ 0.0)))
-    (let ((bsize (vec (* 0.5 (- x+ x-))
-                      (* 0.5 (- y+ y-))
-                      (* 0.5 (- z+ z-)))))
-      (values (nv+ (vec x- y- z-) bsize)
-              bsize))))
+    (%region x- y- z- (vec (- x+ x-) (- y+ y-) (- z+ z-)))))
+
+(declaim (inline region-overlaps-p))
+(defun region-overlaps-p (object region)
+  (declare (optimize speed))
+  (let ((ol (location object))
+        (ob (bsize object))
+        (s (region-size region)))
+    (etypecase ol
+      (vec3
+       (let ((rl (vec3 (+ (vx3 region) (* 0.5 (vx3 s)))
+                       (+ (vy3 region) (* 0.5 (vy3 s)))
+                       (+ (vz3 region) (* 0.5 (vz3 s))))))
+         (declare (dynamic-extent rl))
+         (and (<= (abs (- (vx3 ol) (vx3 rl))) (+ (* 0.5 (vx3 s)) (vx3 ob)))
+              (<= (abs (- (vy3 ol) (vy3 rl))) (+ (* 0.5 (vy3 s)) (vy3 ob)))
+              (<= (abs (- (vz3 ol) (vz3 rl))) (+ (* 0.5 (vz3 s)) (vz3 ob))))))
+      (vec2
+       (let ((rl (vec2 (+ (vx3 region) (* 0.5 (vx3 s)))
+                       (+ (vy3 region) (* 0.5 (vy3 s))))))
+         (declare (dynamic-extent rl))
+         (and (<= (abs (- (vx2 ol) (vx2 rl))) (+ (* 0.5 (vx3 s)) (vx2 ob)))
+              (<= (abs (- (vy2 ol) (vy2 rl))) (+ (* 0.5 (vy3 s)) (vy2 ob)))))))))
+
+(declaim (inline region-contains-p))
+(defun region-contains-p (object region)
+  (declare (optimize speed))
+  (let ((ol (location object))
+        (ob (bsize object))
+        (s (region-size region)))
+    (etypecase ol
+      (vec3
+       (let ((rl (vec3 (+ (vx3 region) (* 0.5 (vx3 s)))
+                       (+ (vy3 region) (* 0.5 (vy3 s)))
+                       (+ (vz3 region) (* 0.5 (vz3 s))))))
+         (declare (dynamic-extent rl))
+         (and (<= (abs (- (vx3 ol) (vx3 rl))) (- (* 0.5 (vx3 s)) (vx3 ob)))
+              (<= (abs (- (vy3 ol) (vy3 rl))) (- (* 0.5 (vy3 s)) (vy3 ob)))
+              (<= (abs (- (vz3 ol) (vz3 rl))) (- (* 0.5 (vz3 s)) (vz3 ob))))))
+      (vec2
+       (let ((rl (vec2 (+ (vx3 region) (* 0.5 (vx3 s)))
+                       (+ (vy3 region) (* 0.5 (vy3 s))))))
+         (declare (dynamic-extent rl))
+         (print rl)
+         (and (<= (abs (- (vx2 ol) (vx2 rl))) (- (* 0.5 (vx3 s)) (vx2 ob)))
+              (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5 (vy3 s)) (vx2 ob)))))))))

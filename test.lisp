@@ -19,10 +19,46 @@
 (define-test 3d-spaces)
 
 (define-test 2d
-  :parent 3d-spaces)
+  :parent 3d-spaces
+  (true (space:region-overlaps-p
+         (box2 (vec 0 0) (vec 10 10))
+         (space:region -10 -10 0 20 20 0)))
+  (true (space:region-overlaps-p
+         (box2 (vec -5 -5) (vec 10 10))
+         (space:region -10 -10 0 20 20 0)))
+  (false (space:region-overlaps-p
+          (box2 (vec 30 30) (vec 10 10))
+          (space:region -10 -10 0 20 20 0)))
+  (true (space:region-contains-p
+         (box2 (vec 0 0) (vec 10 10))
+         (space:region -10 -10 0 20 20 0)))
+  (false (space:region-contains-p
+          (box2 (vec -5 -5) (vec 10 10))
+          (space:region -10 -10 0 20 20 0)))
+  (false (space:region-contains-p
+          (box2 (vec 30 30) (vec 10 10))
+          (space:region -10 -10 0 20 20 0))))
 
 (define-test 3d
-  :parent 3d-spaces)
+  :parent 3d-spaces
+  (true (space:region-overlaps-p
+         (box3 (vec 0 0 0) (vec 10 10 10))
+         (space:region -10 -10 -10 20 20 20)))
+  (true (space:region-overlaps-p
+         (box3 (vec -5 -5 -5) (vec 10 10 10))
+         (space:region -10 -10 -10 20 20 20)))
+  (false (space:region-overlaps-p
+          (box3 (vec 30 30 30) (vec 10 10 10))
+          (space:region -10 -10 -10 20 20 20)))
+  (true (space:region-contains-p
+         (box3 (vec 0 0 0) (vec 10 10 10))
+         (space:region -10 -10 -10 20 20 20)))
+  (false (space:region-contains-p
+          (box3 (vec -5 -5 -5) (vec 10 10 10))
+          (space:region -10 -10 -10 20 20 20)))
+  (false (space:region-contains-p
+          (box3 (vec 30 30 30) (vec 10 10 10))
+          (space:region -10 -10 -10 20 20 20))))
 
 (define-test bvh2
   :parent 2d
@@ -40,6 +76,9 @@
   ((location :initarg :location :initform (vec 0 0 0) :accessor space:location)
    (bsize :initarg :bsize :initform (vec 0 0 0) :accessor space:bsize)))
 
+(defmethod print-object ((box box3) stream)
+  (prin1 (list 'box3 (space:location box) (space:bsize box)) stream))
+
 (defun box3 (&optional (location (vec 0 0 0)) (bsize (vec 0 0 0)))
   (make-instance 'box3 :location location :bsize bsize))
 
@@ -47,8 +86,14 @@
   ((location :initarg :location :initform (vec 0 0) :accessor space:location)
    (bsize :initarg :bsize :initform (vec 0 0) :accessor space:bsize)))
 
+(defmethod print-object ((box box2) stream)
+  (prin1 (list 'box2 (space:location box) (space:bsize box)) stream))
+
 (defun box2 (&optional (location (vec 0 0)) (bsize (vec 0 0)))
   (make-instance 'box2 :location (vxy location) :bsize (vxy bsize)))
+
+(defun random* (min max)
+  (+ min (random (- max min))))
 
 (defun test-container-generic (constructor object-constructor)
   (flet ((make-container ()
@@ -100,4 +145,9 @@
         (finish (space:do-all (object container)
                   (true (find object objects))))
         (finish (space:do-overlapping (object container (space:region -100 -100 -100 200 200 200))
-                  (true (find object objects))))))))
+                  (true (find object objects))))
+        (loop repeat 100
+              for region = (space:region (random* -100 100) (random* -100 100) (random* -100 100)
+                                         (random* -100 100) (random* -100 100) (random* -100 100))
+              do (space:do-contained (object container region)
+                   (true (space:region-overlaps-p object region))))))))
