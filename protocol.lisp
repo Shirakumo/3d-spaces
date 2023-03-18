@@ -28,7 +28,8 @@
    #:region-bsize
    #:do-all
    #:do-contained
-   #:do-overlapping))
+   #:do-overlapping
+   #:find-centroid))
 
 (in-package #:org.shirakumo.fraf.trial.space)
 
@@ -73,7 +74,7 @@
 
 (declaim (inline region))
 (defun region (x y z w h d)
-  (%region x y z (vec w h d)))
+  (%region (float x 0f0) (float y 0f0) (float z 0f0) (vec w h d)))
 
 (defmethod location ((object region)) 
   object)
@@ -107,17 +108,19 @@
            (etypecase location
              (vec3 (v<- region location))
              (vec2 (setf (vx3 region) (vx2 location)
-                         (vy3 region) (vy2 location))))
+                         (vy3 region) (vy2 location)
+                         (vz3 region) 0.0)))
            (let ((rbsize (region-bsize region)))
              (etypecase bsize
                (vec3 (v<- rbsize bsize))
                (vec2 (setf (vx3 rbsize) (vx2 bsize)
-                           (vy3 rbsize) (vy2 bsize)))))
+                           (vy3 rbsize) (vy2 bsize)
+                           (vz3 rbsize) 0.0))))
            region)
           ((vec3-p location)
            (%region (vx location) (vy location) (vz location) (vcopy bsize)))
           (T
-           (%region (vy location) (vy location) 0 (vxy_ bsize))))))
+           (%region (vy location) (vy location) 0.0 (vxy_ bsize))))))
 
 (defmethod check ((container container)))
 (defmethod reoptimize ((container container) &key))
@@ -176,3 +179,25 @@
          (block NIL
            (call-with-overlapping #',thunk ,container ,regiong)
            ,result)))))
+
+(defun find-centroid (objects)
+  (let ((x- most-positive-fixnum)
+        (x+ most-negative-fixnum)
+        (y- most-positive-fixnum)
+        (y+ most-negative-fixnum)
+        (z- most-positive-fixnum)
+        (z+ most-negative-fixnum))
+    (flet ((expand (loc bs)
+             (setf x- (min x- (- (vx loc) (vx bs))))
+             (setf x+ (max x+ (+ (vx loc) (vx bs))))
+             (setf y- (min y- (- (vy loc) (vy bs))))
+             (setf y+ (max y+ (+ (vy loc) (vy bs))))
+             (setf z- (min z- (- (vz loc) (vz bs))))
+             (setf z+ (max z+ (+ (vz loc) (vz bs))))))
+      (sequences:dosequence (object objects)
+        (expand (location object) (bsize object))))
+    (let ((bsize (vec (* 0.5 (- x+ x-))
+                      (* 0.5 (- y+ y-))
+                      (* 0.5 (- z+ z-)))))
+      (values (nv+ (vec x- y- z-) bsize)
+              bsize))))
