@@ -117,8 +117,18 @@
     (clrhash (grid-table grid))
     (unless (and location bsize)
       (let ((region (find-region old)))
-        (unless location (setf location (v- region (region-size region))))
-        (unless bsize (setf bsize (v* (region-size region) 0.5)))))
+        (unless location
+          (setf location (v- region (region-size region))))
+        (unless bsize
+          (setf bsize (v* (region-size region) 0.5)))
+        (when (and (not cell-size) (< 0 (length old)))
+          (let ((biggest 0.0))
+            (loop for object across old
+                  for bsize = (bsize object)
+                  do (etypecase bsize
+                       (vec3 (setf biggest (max biggest (vx3 bsize) (vy3 bsize) (vz3 bsize))))
+                       (vec2 (setf biggest (max biggest (vx2 bsize) (vy2 bsize))))))
+            (setf cell-size (* 2.0 biggest))))))
     (let* ((c (grid-cell grid))
            (w (ceiling (* 2.0 (vx bsize)) c))
            (h (ceiling (* 2.0 (vy bsize)) c))
@@ -127,7 +137,7 @@
       (setf (grid-h grid) h)
       (setf (grid-d grid) d)
       (setf (grid-data grid) (make-array (* w h d) :initial-element ()))
-      (when cell-size (setf (grid-cell grid) cell-size))
+      (setf (grid-cell grid) cell-size)
       (v<- (grid-location grid) location))
     (enter old grid)
     grid))
