@@ -1,0 +1,47 @@
+# About 3D-Spaces
+This library implements a number of spatial query data structures; structures that can answer spatial range queries for optimised lookup, particularly suited for games. Often this is used to implement a "broad phase search".
+
+## How To
+The library defines a core protocol which every structure (called a ``container``) must implement. Every container may also expose additional operations or properties, but it is not required to do so. The library //does not// provide any object implementations. Instead it is expected that you implement ``location`` and ``bsize`` or ``radius`` for your objects to describe their bounding volumes, which the containers will then make use of.
+
+The following shows a very basic use:
+
+:: common lisp
+(defclass box ()
+  ((location :initarg :location :initform (vec 0 0 0) :accessor space:location)
+   (bsize :initarg :bsize :initform (vec 0 0 0) :accessor space:bsize)))
+
+(defun box (&optional (location (vec 0 0 0)) (bsize (vec 0 0 0)))
+  (make-instance 'box :location location :bsize bsize))
+
+(defvar *bvh2* (org.shirakumo.fraf.trial.space.bvh2:make-bvh))
+
+(space:enter (box (vec 10 10 10) (vec 1 2 3)) *bvh2*)
+
+(space:do-all (object *bvh2*)
+  (print object))
+
+(space:do-overlapping (object *bvh2* (space:region 0 0 0 11 11 11))
+  (print object))
+
+(space:do-contained (object *bvh2* (space:region 0 0 0 11 11 11))
+  (print object))
+
+(describe *bvh2*)
+
+(space:clear *bvh2*)
+::
+
+Every container also implements "For"(https://shinmera.github.io/for)'s iteration protocol, allowing you to iterate over the containers in an opaque way.
+
+## Supported Structures
+The library supports the following structure types at this point:
+
+- ``bvh2``
+  A 2D bounding volume hierarchy. You may want to occasionally use ``reoptimize`` to rebalance the tree. The BVH has no size constraints.
+- ``quadtree``
+  A 2D quadtree. The tree will automatically expand and resize as objects are added to it.
+- ``grid3``
+  A 3D grid. The grid will *not* expand or resize automatically, nor estimate a good grid cell size. It is up to you to specify these properties as suitable for your use case. You may however call ``reoptimize`` at any time to change the grid shape.
+
+Please see their respective packages for additional supported operations.

@@ -140,7 +140,9 @@ See CONTAINER (type)")
   (type container
     "Supertype for all containers.
 
-All container types must implement the following functions.
+All container types must implement the following functions in addition
+to implementing the iteration protocol of FOR (meaning you can use
+FOR:OVER to iterate over a container as well).
 
 See CONTAINER-P
 See CHECK
