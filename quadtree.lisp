@@ -4,7 +4,7 @@
  Author: Janne Pakarinen <gingeralesy@gmail.com>
 |#
 
-(defpackage #:org.shirakumo.fraf.trial.quadtree
+(defpackage #:org.shirakumo.fraf.trial.space.quadtree
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
   (:export
    #:quadtree
@@ -21,7 +21,7 @@
    #:quadtree-find-for
    #:quadtree-lines))
 
-(in-package #:org.shirakumo.fraf.trial.quadtree)
+(in-package #:org.shirakumo.fraf.trial.space.quadtree)
 
 (declaim (inline make-object-vector))
 (defun make-object-vector (&optional (initial-size 4))

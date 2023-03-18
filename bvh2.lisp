@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:org.shirakumo.fraf.trial.bvh2
+(defpackage #:org.shirakumo.fraf.trial.space.bvh2
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
   (:export
    #:bvh
@@ -14,7 +14,7 @@
    #:bvh-update
    #:bvh-lines))
 
-(in-package #:org.shirakumo.fraf.trial.bvh2)
+(in-package #:org.shirakumo.fraf.trial.space.bvh2)
 
 ;; CF https://www.researchgate.net/publication/254007711_Fast_Effective_BVH_Updates_for_Animated_Scenes
 

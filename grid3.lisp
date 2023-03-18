@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:org.shirakumo.fraf.trial.grid3
+(defpackage #:org.shirakumo.fraf.trial.space.grid3
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
   (:export
    #:grid
@@ -15,7 +15,7 @@
    #:grid-remove
    #:grid-update))
 
-(in-package #:org.shirakumo.fraf.trial.grid3)
+(in-package #:org.shirakumo.fraf.trial.space.grid3)
 
 (declaim (inline clamp))
 (defun clamp (min x max)
@@ -35,14 +35,14 @@
   (table (make-hash-table :test 'eq) :type hash-table))
 
 (defmethod print-object ((grid grid) stream)
-  (print-unreadable-object (grid stream)
+  (print-unreadable-object (grid stream :type T)
     (let ((c (grid-cell grid)))
       (format stream "~a x ~a x ~a @ ~a"
               (* c (grid-w grid)) (* c (grid-h grid)) (* c (grid-d grid))
               (grid-location grid)))))
 
 (defun make-grid (cell-size &key (location (vec 0 0 0)) (bsize (vec 100 100 100)))
-  (grid-resize (%make-grid location (float cell-size 0f0)) bsize))
+  (grid-resize (%make-grid location (float cell-size 0f0)) :bsize bsize))
 
 (defun grid-resize (grid &key (bsize (bsize grid)) (cell-size (grid-cell grid)))
   (reoptimize grid :bsize bsize :cell-size cell-size :location (grid-location grid)))
@@ -126,7 +126,7 @@
       (setf (grid-w grid) w)
       (setf (grid-h grid) h)
       (setf (grid-d grid) d)
-      (setf (grid-data grid) (make-array (* w h d)))
+      (setf (grid-data grid) (make-array (* w h d) :initial-element ()))
       (when cell-size (setf (grid-cell grid) cell-size))
       (v<- (grid-location grid) location))
     (enter old grid)
@@ -165,11 +165,9 @@
                     (symbol (fdefinition function))
                     (function function)))
         (bsize (region-bsize region))
-        (data (grid-data grid))
-        (w (grid-w grid))
-        (h (grid-h grid)))
-    (multiple-value-bind (x- y- z-) (%grid-coordinates grid (vx3 region) (vy3 region) (vz3 region))
-      (multiple-value-bind (x+ y+ z+) (%grid-coordinates grid (+ (vx3 region) (vx3 bsize)) (+ (vy3 region) (vy3 bsize)) (+ (vz3 region) (vz3 bsize)))
+        (data (grid-data grid)))
+    (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
+      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 bsize)) (+ (vy3 region) (vy3 bsize)) (+ (vz3 region) (vz3 bsize)))
         (with-nesting
           (loop for z from z- below z+
                 for zi = (the (unsigned-byte 32) (* z w h))
