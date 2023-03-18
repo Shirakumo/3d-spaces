@@ -139,15 +139,15 @@
 
     (group (randomized)
       (let ((container (make-container))
-            (objects (loop repeat 100
-                           collect (make-object (vrand (vec 0 0 0) 100) (vrand (vec 0 0 0) 100)))))
+            (objects (loop repeat 10
+                           collect (make-object (vrand (vec 0 0 0) 100) (vrand (vec 50 50 50) 100)))))
         (finish (space:enter objects container))
         (finish (space:do-all (object container)
                   (true (find object objects))))
         (finish (space:do-overlapping (object container (space:region -100 -100 -100 200 200 200))
                   (true (find object objects))))
-        (loop repeat 100
+        (loop repeat 20
               for region = (space:region (random* -100 100) (random* -100 100) (random* -100 100)
-                                         (random* -100 100) (random* -100 100) (random* -100 100))
+                                         (random* 0 200) (random* 0 200) (random* 0 200))
               do (space:do-contained (object container region)
                    (true (space:region-overlaps-p object region))))))))

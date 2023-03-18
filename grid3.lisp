@@ -63,9 +63,9 @@
           (w (grid-w ,grid))
           (h (grid-h ,grid))
           (d (grid-d ,grid))
-          (,x (clamp 0 (the (unsigned-byte 32) (floor (+ (- ,xv (vx3 gl)) (* ch w)) w)) (1- w)))
-          (,y (clamp 0 (the (unsigned-byte 32) (floor (+ (- ,yv (vy3 gl)) (* ch h)) h)) (1- h)))
-          (,z (clamp 0 (the (unsigned-byte 32) (floor (+ (- ,zv (vz3 gl)) (* ch d)) d)) (1- d))))
+          (,x (clamp 0 (the (signed-byte 32) (floor (+ (- ,xv (vx3 gl)) (* ch w)) w)) (1- w)))
+          (,y (clamp 0 (the (signed-byte 32) (floor (+ (- ,yv (vy3 gl)) (* ch h)) h)) (1- h)))
+          (,z (clamp 0 (the (signed-byte 32) (floor (+ (- ,zv (vz3 gl)) (* ch d)) d)) (1- d))))
      ,@body))
 
 (defun grid-insert (object grid)
