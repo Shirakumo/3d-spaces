@@ -50,6 +50,9 @@
 (defgeneric call-with-contained (function container region))
 (defgeneric call-with-overlapping (function container region))
 
+(defgeneric serialize (container file object->id))
+(defgeneric deserialize (container file id->object))
+
 (defstruct (container
             (:constructor NIL)
             (:copier NIL)))
@@ -259,3 +262,27 @@
          (declare (dynamic-extent rl))
          (and (<= (abs (- (vx2 ol) (vx2 rl))) (- (* 0.5 (vx3 s)) (vx2 ob)))
               (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5 (vy3 s)) (vx2 ob)))))))))
+
+(defmethod serialize ((container container) file (object->id symbol))
+  (serialize container file (fdefinition object->id)))
+
+(defmethod deserialize ((container container) file (id->object symbol))
+  (deserialize container file (fdefinition id->object)))
+
+(defmethod serialize ((container container) (file string) object->id)
+  (serialize container (parse-namestring file) object->id))
+
+(defmethod dserialize ((container container) (file string) id->object)
+  (deserialize container (parse-namestring file) id->object))
+
+(defmethod serialize ((container container) (file pathname) object->id)
+  (with-open-file (stream file :direction :output
+                               :if-exists :supersede
+                               :element-type '(unsigned-byte 8))
+    (serialize container stream object->id)))
+
+(defmethod dserialize ((container container) (file pathname) id->object)
+  (with-open-file (stream file :direction :input
+                               :if-exists :supersede
+                               :element-type '(unsigned-byte 8))
+    (deserialize container stream id->object)))

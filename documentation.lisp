@@ -136,6 +136,40 @@ See DO-OVERLAPPING
 See ENSURE-REGION
 See REGION (type)
 See CONTAINER (type)")
+
+  (function serialize
+    "Serialise CONTAINER to FILE.
+
+OBJECT->ID is called for every object that was added to the container
+during the serialisation process. Value returned from the function
+must be a string.
+
+Consequences are undefined if the function returns the same (EQUAL)
+ID string for two different (EQ) objects, or returns different (EQUAL)
+ID strings for the same (EQ) object.
+
+See DESERIALIZE
+See CONTAINER (type)")
+
+  (function deserialize
+    "Deserialize CONTAINER from FILE.
+
+ID->OBJECT is called for every object that was added to the container
+that was used to serialize to the given file. The function should
+accept the strings that were previously returned by OBJECT->ID and
+return the corresponding object.
+
+It is expected that the size and location of the returned objects is
+the same as it was when SERIALIZE was called. Or in other words, it is
+still up to you to ensure object properties are persisted separately
+or that the container is updated appropriately after deserialization.
+
+Consequences are undefined if the function returns NIL, or the same
+(EQ) object for two different (EQUAL) IDs, or returning different
+objects for the same (EQUAL) IDS.
+
+See SERIALIZE
+See CONTAINER (type)")
   
   (type container
     "Supertype for all containers.
