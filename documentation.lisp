@@ -326,7 +326,26 @@ See BVH (type)"))
 
 (docs:define-docs
   (type quadtree
-    "
+    "A spatial tree data structure in 2D similar to BVH2.
+
+Each node of a quad-tree splits space into four equal sections that
+intersect in the middle of the node's space. Each of these quarters
+may be represented by a child-node or nothing each of which tries to
+hold as few items as possible. If an item overlaps with the space of
+multiple child nodes, it is not passed to any of them and kept in the
+parent node.
+
+The node automatically splits into sub-sections when an item count
+threshold is met upon insertion and checks the need for rebalancing at
+removal. Calling REOPTIMIZE manually will shuffle the tree around for
+better search travelsal, but it is not recommended as the searches are
+should remain fast enough. Calling UPDATE will also rebalance the tree
+automatically in previous and current space relative to the passed
+object.
+
+Like with BVH2, there is no limit to the area that the tree can span
+and it may cover any arbitrary area. The tree will also automatically
+expand as needed to fit all objects, but it will not contract.
 
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER
 See MAKE-QUADTREE
@@ -343,59 +362,109 @@ See QUADTREE-FIND-FOR
 See QUADTREE-LINES")
   
   (function make-quadtree
-    "
+    "Creates an empty QUADTREE for [0,0] to [100,100] coordinate space
+with 1 as the minimum length of an edge and 1 as the threshold number
+of items before the node is split.
 
-See QUADTREE (type)")
+See QUADTREE (type)
+See MAKE-QUADTREE-AT")
   
   (function make-quadtree-at
-    "
+    "Creates an empty QUADTREE for the defined section of space with
+wanted minimum node edge size (defaults to 1) and the item count
+threshold before a node splits (defaults to 1).
 
-See QUADTREE (type)")
+See QUADTREE (type)
+See MAKE-QUADTREE")
   
   (function quadtree-insert
-    "Fast track for ENTER.
+    "Fast track for ENTER. If the passed object already exists in the
+tree its holding node is updated.
 
+See QUADTREE (type)
+See QUADTREE-UPDATE
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
   
   (function quadtree-remove
-    "Fast track for LEAVE.
+    "Fast track for LEAVE. The holder node's state is updated if
+necessary.
 
+See QUADTREE (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
   
   (function quadtree-update
-    "Fast track for UPDATE.
+    "Fast track for UPDATE. Checks if the passed object's holding node
+in the tree should be changed and updates it accordingly.
 
+See QUADTREE (type)
+See QUADTREE-INSERT
+See QUADTREE-REMOVE
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE")
   
   (function quadtree-find-all
-    "
+    "Finds every object in the tree and pushes them into the passed
+vector which is then returned.
 
 See QUADTREE (type)")
   
   (function quadtree-find-overlaps
-    "
+    "Finds every object in the tree that overlaps with the passed
+region and pushes them into the vector which is then returned.
 
-See QUADTREE (type)")
+The region is defined by a VEC4 where VX and VY represent the top-left
+point of the region, and VZ and VW the bottom-right point of the
+region.
+
+See QUADTREE (type)
+See QUADTREE-FIND-OVERLAPS-IN
+See QUADTREE-FIND-CONTAINED")
   
   (function quadtree-find-overlaps-in
-    "
+    "Finds every object in the tree that overlaps with the passed
+region and pushes them into the vector which is then returned.
 
-See QUADTREE (type)")
+The region is defined by a VEC2 where VX and VY represent the top-left
+point of the region, and a second VEC2 where VX and VY are the width
+and height respectively of the region.
+
+See QUADTREE (type)
+See QUADTREE-FIND-OVERLAPS
+See QUADTREE-FIND-CONTAINED-IN")
   
   (function quadtree-find-contained
-    "
+    "Finds every object in the tree that is completely contained by
+the passed region and pushes them into the vector which is then
+returned.
 
-See QUADTREE (type)")
+The region is defined by a VEC4 where VX and VY represent the top-left
+point of the region, and VZ and VW the bottom-right point of the
+region.
+
+See QUADTREE (type)
+See QUADTREE-FIND-CONTAINED-IN
+See QUADTREE-FIND-OVERLAPS")
   
   (function quadtree-find-contained-in
-    "
+    "Finds every object in the tree that is completely contained by
+the passed region and pushes them into the vector which is then
+returned.
 
-See QUADTREE (type)")
+The region is defined by a VEC2 where VX and VY represent the top-left
+point of the region, and a second VEC2 where VX and VY are the width
+and height respectively of the region.
+
+See QUADTREE (type)
+See QUADTREE-FIND-CONTAINED
+See QUADTREE-FIND-OVERLAPS-IN")
   
   (function quadtree-find-for
-    "
+    "Finds every object in the tree that overlaps with the passed
+object that holds location and size information to it.
 
-See QUADTREE (type)")
+The object must implement a method for at least LOCATION and BSIZE.
+
+See QUADTREE (type)
+See QUADTREE-FIND-OVERLAPS-IN")
   
   (function quadtree-lines
     "Debug function.
