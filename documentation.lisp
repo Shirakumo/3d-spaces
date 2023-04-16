@@ -137,6 +137,19 @@ See ENSURE-REGION
 See REGION (type)
 See CONTAINER (type)")
 
+  (function call-with-intersection
+    "Calls FUNCTION with every object that *may* intersect the ray.
+
+It is up to you to implement the fine grained intersection test
+between the ray and the object, this will only approximate the lookup
+based on the container's internal acceleration structures.
+
+Depending on the container, the ray origin and direction should be
+either VEC3s or VEC2s.
+
+See DO-INTERSECTING
+See CONTAINER (type)")
+
   (function serialize
     "Serialise CONTAINER to FILE.
 
@@ -239,6 +252,13 @@ See CALL-WITH-CONTAINED")
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-OVERLAPPING")
+
+  (function do-overlapping
+    "Convenience macro to iterate over objects intersecting the ray.
+
+Returns the RETURN value, and executes BODY in a BLOCK NIL context.
+
+See CALL-WITH-INTERSECTING")
   
   (function find-region
     "Returns a region that encompasses all objects passed as tightly as possible.

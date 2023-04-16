@@ -22,6 +22,7 @@
    #:call-with-all
    #:call-with-contained
    #:call-with-overlapping
+   #:call-with-intersecting
    #:container
    #:container-p
    #:region
@@ -29,6 +30,7 @@
    #:do-all
    #:do-contained
    #:do-overlapping
+   #:do-intersecting
    #:find-region
    #:region-overlaps-p
    #:region-contains-p))
@@ -49,6 +51,7 @@
 (defgeneric call-with-all (function container))
 (defgeneric call-with-contained (function container region))
 (defgeneric call-with-overlapping (function container region))
+(defgeneric call-with-intersecting (funciton container ray-origin ray-direction))
 
 (defgeneric serialize (container file object->id))
 (defgeneric deserialize (container file id->object))
@@ -188,6 +191,15 @@
            (call-with-overlapping #',thunk ,container ,regiong)
            ,result)))))
 
+(defmacro do-intersecting ((element container ray-origin ray-direction &optional result) &body body)
+  (let ((thunk (gensym "THUNK")))
+    `(block NIL
+       (flet ((,thunk (,element)
+                ,@body))
+         (declare (dynamic-extent #',thunk))
+         (call-with-intersecting #',thunk ,container ,ray-origin ,ray-direction)
+         ,result))))
+
 (defun find-region (objects)
   (let ((x- most-positive-single-float)
         (x+ most-negative-single-float)
@@ -281,7 +293,7 @@
                                :element-type '(unsigned-byte 8))
     (serialize container stream object->id)))
 
-(defmethod dserialize ((container container) (file pathname) id->object)
+(defmethod deserialize ((container container) (file pathname) id->object)
   (with-open-file (stream file :direction :input
                                :if-exists :supersede
                                :element-type '(unsigned-byte 8))
