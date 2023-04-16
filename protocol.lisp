@@ -157,34 +157,34 @@
 
 (defmacro do-all ((element container &optional result) &body body)
   (let ((thunk (gensym "THUNK")))
-    `(flet ((,thunk (,element)
-              ,@body))
-       (declare (dynamic-extent #',thunk))
-       (block NIL
+    `(block NIL
+       (flet ((,thunk (,element)
+                ,@body))
+         (declare (dynamic-extent #',thunk))
          (call-with-all #',thunk ,container)
          ,result))))
 
 (defmacro do-contained ((element container region &optional result) &body body)
   (let ((thunk (gensym "THUNK"))
         (regiong (gensym "REGION")))
-    `(flet ((,thunk (,element)
-              ,@body))
-       (declare (dynamic-extent #',thunk))
-       (with-region (,regiong)
-         (ensure-region ,region ,regiong)
-         (block NIL
+    `(with-region (,regiong)
+       (ensure-region ,region ,regiong)
+       (block NIL
+         (flet ((,thunk (,element)
+                  ,@body))
+           (declare (dynamic-extent #',thunk))
            (call-with-contained #',thunk ,container ,regiong)
            ,result)))))
 
 (defmacro do-overlapping ((element container region &optional result) &body body)
   (let ((thunk (gensym "THUNK"))
         (regiong (gensym "REGION")))
-    `(flet ((,thunk (,element)
-              ,@body))
-       (declare (dynamic-extent #',thunk))
-       (with-region (,regiong)
-         (ensure-region ,region ,regiong)
-         (block NIL
+    `(with-region (,regiong)
+       (ensure-region ,region ,regiong)
+       (block NIL
+         (flet ((,thunk (,element)
+                  ,@body))
+           (declare (dynamic-extent #',thunk))
            (call-with-overlapping #',thunk ,container ,regiong)
            ,result)))))
 
