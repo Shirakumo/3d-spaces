@@ -4,37 +4,6 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:org.shirakumo.fraf.trial.space
-  (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.flare.matrix)
-  (:local-nicknames
-   (#:sequences #:org.shirakumo.trivial-extensible-sequences))
-  (:export
-   #:location
-   #:bsize
-   #:radius
-   #:ensure-region
-   #:check
-   #:clear
-   #:reoptimize
-   #:enter
-   #:leave
-   #:update
-   #:call-with-all
-   #:call-with-contained
-   #:call-with-overlapping
-   #:call-with-intersecting
-   #:container
-   #:container-p
-   #:region
-   #:region-size
-   #:do-all
-   #:do-contained
-   #:do-overlapping
-   #:do-intersecting
-   #:find-region
-   #:region-overlaps-p
-   #:region-contains-p))
-
 (in-package #:org.shirakumo.fraf.trial.space)
 
 (defgeneric location (object))

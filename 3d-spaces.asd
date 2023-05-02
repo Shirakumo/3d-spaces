@@ -14,7 +14,8 @@
   :bug-tracker "https://github.com/shirakumo/3d-spaces/issues"
   :source-control (:git "https://github.com/shirakumo/3d-spaces.git")
   :serial T
-  :components ((:file "protocol")
+  :components ((:file "package")
+               (:file "protocol")
                (:file "bvh2")
                (:file "quadtree")
                (:file "grid3")

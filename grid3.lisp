@@ -4,17 +4,6 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:org.shirakumo.fraf.trial.space.grid3
-  (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
-  (:export
-   #:grid
-   #:make-grid
-   #:grid-resize
-   #:grid-move
-   #:grid-insert
-   #:grid-remove
-   #:grid-update))
-
 (in-package #:org.shirakumo.fraf.trial.space.grid3)
 
 (do-external-symbols (s '#:org.shirakumo.fraf.trial.space)

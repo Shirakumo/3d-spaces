@@ -4,24 +4,6 @@
  Author: Janne Pakarinen <gingeralesy@gmail.com>
 |#
 
-(defpackage #:org.shirakumo.fraf.trial.space.quadtree
-  (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
-  (:shadow #:region-overlaps-p #:region-contains-p)
-  (:export
-   #:quadtree
-   #:make-quadtree
-   #:make-quadtree-at
-   #:quadtree-insert
-   #:quadtree-remove
-   #:quadtree-update
-   #:quadtree-find-all
-   #:quadtree-find-overlaps
-   #:quadtree-find-overlaps-in
-   #:quadtree-find-contained
-   #:quadtree-find-contained-in
-   #:quadtree-find-for
-   #:quadtree-lines))
-
 (in-package #:org.shirakumo.fraf.trial.space.quadtree)
 
 (declaim (inline make-object-vector))
@@ -167,8 +149,8 @@
             do (setf (quadtree-node-parent child) NIL)
             when recurse do (node-remove-children child :recurse T)))))
 
-(declaim (inline region-contains-p))
-(defun region-contains-p (region other)
+(declaim (inline %region-contains-p))
+(defun %region-contains-p (region other)
   (declare (optimize speed))
   (declare (type vec4 region other))
   (let ((rx (vx4 region))
@@ -210,8 +192,8 @@
     (declare (type vec2 loc siz))
     (region-contains-area-p region loc siz)))
 
-(declaim (inline region-overlaps-p))
-(defun region-overlaps-p (region other)
+(declaim (inline %region-overlaps-p))
+(defun %region-overlaps-p (region other)
   (declare (optimize speed))
   (declare (type vec4 region other))
   (let ((rx (vx4 region))
@@ -404,9 +386,9 @@
 
 (defun node-find (node region vector)
   (declare (optimize speed))
-  (when (and (quadtree-node-active-p node) (region-overlaps-p node region))
+  (when (and (quadtree-node-active-p node) (%region-overlaps-p node region))
     (node-push-objects-into node vector)
-    (if (region-contains-p region node)
+    (if (%region-contains-p region node)
         (for-node-children (node-find-all node vector))
         (for-node-children (node-find node region vector))))
   vector)
@@ -632,7 +614,7 @@
                                     :element-type '(or null list)
                                     :initial-element NIL)))
     (declare (type (vector T) objects))
-    (when (or (eq node region) (region-contains-p region node))
+    (when (or (eq node region) (%region-contains-p region node))
       (setf region NIL))
     (labels ((pop-stack () ;; Keep track of child nodes that haven't been checked yet.
                (vector-pop child-stack))
@@ -652,7 +634,7 @@
              (next-quad () ;; Updates the current node, object list, and maintains the child stack.
                (let ((child (pop-child)))
                  (cond
-                   ((and child (or (null region) (region-overlaps-p region child)))
+                   ((and child (or (null region) (%region-overlaps-p region child)))
                     (node-push-objects-into child objects)
                     (push-stack child)
                     (setf node child))
