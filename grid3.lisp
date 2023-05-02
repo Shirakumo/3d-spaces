@@ -130,7 +130,7 @@
       (setf (grid-h grid) h)
       (setf (grid-d grid) d)
       (setf (grid-data grid) (make-array (* w h d) :initial-element ()))
-      (setf (grid-cell grid) cell-size)
+      (when cell-size (setf (grid-cell grid) cell-size))
       (v<- (grid-location grid) location))
     (enter old grid)
     grid))
