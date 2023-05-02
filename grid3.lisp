@@ -228,7 +228,8 @@
              (dz (abs (vz3 ray-direction))) (sz (if (<= 0 (vz3 ray-direction)) +1 -1))
              (dm (max dx dy dz))
              (x1 (* 0.5 dm)) (y1 x1) (z1 x1)
-             (i (+ x0 (* y0 w) (* z0 w h)))
+             (zstride (* w h))
+             (i (+ x0 (* y0 w) (the (unsigned-byte 32) (* z0 zstride))))
              ;; We cache the last 16 indices here to avoid iterating over
              ;; duplicate indices. The idea being that testing this index
              ;; is going to be a lot faster than re-testing the fine collisions
@@ -236,7 +237,7 @@
              (cache (make-array 16 :element-type '(unsigned-byte 32)))
              (cache-i 0))
         (declare (type (integer -1 +1) sx sy sz))
-        (declare (type (unsigned-byte 32) i x0 y0 z0))
+        (declare (type (unsigned-byte 32) i x0 y0 z0 zstride))
         (declare (type single-float dx dy dz dm x1 y1 z1))
         (declare (type (integer 0 16) cache-i))
         (flet ((try (i)
@@ -253,8 +254,8 @@
                   do (try i)
                      (try (+ i 1))
                      (try (+ i w))
-                     (try (+ i (the (unsigned-byte 32) (* w h))))
-                     (try (+ i (the (unsigned-byte 32) (+ 1 w (* w h)))))
+                     (try (+ i (the (unsigned-byte 32) zstride)))
+                     (try (+ i (the (unsigned-byte 32) (+ 1 w zstride))))
                      (decf x1 dx) (when (< x1 0) (incf x1 dm) (incf x0 sx) (incf i (* sx)))
                      (decf y1 dy) (when (< y1 0) (incf y1 dm) (incf y0 sy) (incf i (* sy w)))
-                     (decf z1 dz) (when (< z1 0) (incf z1 dm) (incf z0 sz) (incf i (the (unsigned-byte 32) (* sz w h))))))))))
+                     (decf z1 dz) (when (< z1 0) (incf z1 dm) (incf z0 sz) (incf i (the (unsigned-byte 32) (* sz zstride))))))))))
