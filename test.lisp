@@ -18,6 +18,9 @@
 
 (define-test 3d-spaces)
 
+(defun set= (a b)
+  (null (set-exclusive-or a b)))
+
 (define-test 2d
   :parent 3d-spaces
   (true (space:region-overlaps-p
@@ -122,6 +125,10 @@
                   (is eq box object)))
         (finish (space:do-overlapping (object container box)
                   (is eq box object)))
+        (is eq box (space:do-intersecting (object container (vec 0 0 0) (vec +1 0 0) NIL)
+                     (return object)))
+        (is eq NIL (space:do-intersecting (object container (vec -1 0 0) (vec -1 0 0) NIL)
+                     (return object)))
         (finish (space:leave box container))
         (finish (space:do-all (object container)
                   (false object)))))
@@ -135,7 +142,23 @@
         (finish (space:do-all (object container)
                   (true (or (eq object a) (eq object b) (eq object c)))))
         (finish (space:do-overlapping (object container (space:region 0 0 0 10 10 10))
-                  (false (eq object c))))))
+                  (false (eq object c))))
+        (is set= (list a b c)
+            (let ((list ()))
+              (space:do-intersecting (object container (vec 0 0 0) (vec +1 0 0) list)
+                (push object list))))
+        (is set= (list a)
+            (let ((list ()))
+              (space:do-intersecting (object container (vec -15 0 0) (vec 0 +1 0) list)
+                (push object list))))
+        (is set= (list a b)
+            (let ((list ()))
+              (space:do-intersecting (object container (vec 15 0 0) (vec -1 0 0) list)
+                (push object list))))
+        (is set= (list a b)
+            (let ((list ()))
+              (space:do-intersecting (object container (vec 0 0 0) (vec 1 1 0) list)
+                (push object list))))))
 
     (group (randomized)
       (let ((container (make-container))
