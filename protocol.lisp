@@ -133,6 +133,30 @@
           (T
            (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))))
 
+(defmethod ensure-region ((object vec2) &optional region)
+  (if region
+      (let ((rsize (region-size region)))
+        (setf (vx3 region) (vx2 object)
+              (vy3 region) (vy2 object)
+              (vz3 region) 0.0
+              (vx3 rsize) 0.0
+              (vy3 rsize) 0.0
+              (vz3 rsize) 0.0)
+        region)
+      (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))
+
+(defmethod ensure-region ((object vec3) &optional region)
+  (if region
+      (let ((rsize (region-size region)))
+        (setf (vx3 region) (vx3 object)
+              (vy3 region) (vy3 object)
+              (vz3 region) (vz3 object)
+              (vx3 rsize) 0.0
+              (vy3 rsize) 0.0
+              (vz3 rsize) 0.0)
+        region)
+      (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))
+
 (defmethod check ((container container)))
 (defmethod reoptimize ((container container) &key))
 
