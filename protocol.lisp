@@ -137,6 +137,10 @@
   (sequences:dosequence (child object)
     (leave child container)))
 
+(defmethod update (object (container container))
+  (leave object container)
+  (enter object container))
+
 (defmethod update ((object sequences:sequence) (container container))
   (sequences:dosequence (child object)
     (update child container)))

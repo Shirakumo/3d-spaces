@@ -19,6 +19,7 @@
                (:file "bvh2")
                (:file "quadtree")
                (:file "grid3")
+               (:file "kd-tree")
                (:file "documentation"))
   :depends-on (:documentation-utils
                :3d-vectors

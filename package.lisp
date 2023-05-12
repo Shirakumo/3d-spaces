@@ -76,4 +76,10 @@
      #:quadtree-find-contained
      #:quadtree-find-contained-in
      #:quadtree-find-for
-     #:quadtree-lines)))
+     #:quadtree-lines))
+
+  (defpackage* #:org.shirakumo.fraf.trial.space.kd-tree
+      (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+    (:export
+     #:kd-tree
+     #:make-kd-tree)))
