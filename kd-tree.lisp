@@ -105,7 +105,11 @@
   (let ((dim-value (ecase axis
                      (0 (lambda (o) (vx (location o))))
                      (1 (lambda (o) (vy (location o))))
-                     (2 (lambda (o) (vz (location o)))))))
+                     (2 (lambda (o) (vz (location o))))))
+        (dim-extr (ecase axis
+                    (0 #'vx)
+                    (1 #'vy)
+                    (2 #'vz))))
     (sort children #'< :key dim-value)
     (let* ((mid (truncate (length children) 2))
            (median (if (oddp (length children))
@@ -118,13 +122,13 @@
             (here (node-children node)))
         (setf (fill-pointer here) 0)
         (loop for child across children
-              for location = (funcall dim-value (location child))
-              do (cond ((< (abs (- location median)) (funcall dim-value (bsize child)))
+              for location = (funcall dim-extr (location child))
+              do (cond ((< (abs (- location median)) (funcall dim-extr (bsize child)))
                         ;; We intersect the hyperplane, so keep it here.
                         (vector-push child here))
                        ((< location median)
                         ;; Insert into near
-                        (vector-push child (node-children n)))
+                        (vector-push-extend child (node-children n)))
                        (T
                         ;; Insert into far
                         (vector-push-extend child (node-children f)))))
@@ -178,7 +182,7 @@
         (with-array (b (location object))
           (flet ((check (node)
                    (let ((axis (node-axis node)))
-                     (when (< (abs (- (aref c axis) (node-position node))) (aref b axis))
+                     (when (<= (abs (- (aref c axis) (node-position node))) (aref b axis))
                        ;; We are intersecting the hyperplane, so insert here.
                        (vector-push-extend object (node-children node))
                        (cond ((< (length (node-children node)) split-size))
