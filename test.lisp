@@ -10,7 +10,8 @@
    (#:space #:org.shirakumo.fraf.trial.space)
    (#:bvh2 #:org.shirakumo.fraf.trial.space.bvh2)
    (#:quadtree #:org.shirakumo.fraf.trial.space.quadtree)
-   (#:grid3 #:org.shirakumo.fraf.trial.space.grid3))
+   (#:grid3 #:org.shirakumo.fraf.trial.space.grid3)
+   (#:kd-tree #:org.shirakumo.fraf.trial.space.kd-tree))
   (:export
    #:test))
 
@@ -71,9 +72,17 @@
   :parent 2d
   (test-container-generic #'quadtree:make-quadtree #'box2))
 
+(define-test kd2
+  :parent 2d
+  (test-container-generic (lambda () (kd-tree:make-kd-tree :dimensions 2)) #'box2))
+
 (define-test grid3
   :parent 3d
   (test-container-generic (lambda () (grid3:make-grid 10)) #'box3))
+
+(define-test kd3
+  :parent 3d
+  (test-container-generic (lambda () (kd-tree:make-kd-tree :dimensions 3)) #'box3))
 
 (defclass box3 ()
   ((location :initarg :location :initform (vec 0 0 0) :accessor space:location)
