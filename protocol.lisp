@@ -29,6 +29,36 @@
             (:constructor NIL)
             (:copier NIL)))
 
+(defstruct (sphere
+            (:include vec3)
+            (:constructor %sphere (3d-vectors::%vx3 3d-vectors::%vy3 3d-vectors::%vz3 radius))
+            (:predicate NIL)
+            (:copier NIL))
+  (radius 0.0 :type single-float))
+
+(defmethod print-object ((sphere sphere) stream)
+  (prin1 (list 'sphere (vx sphere) (vy sphere) (vz sphere) (sphere-radius sphere))
+         stream))
+
+(defmethod make-load-form ((sphere sphere) &optional environment)
+  (declare (ignore environment))
+  `(%sphere ,(vx sphere) ,(vy sphere) ,(vz sphere) ,(sphere-radius sphere)))
+
+(declaim (inline sphere))
+(defun sphere (x y z r)
+  (%sphere (float x 0f0) (float y 0f0) (float z 0f0) (float r 0f0)))
+
+(defmethod location ((sphere sphere))
+  sphere)
+
+(defmethod bsize ((sphere sphere))
+  (vec (sphere-radius sphere)
+       (sphere-radius sphere)
+       (sphere-radius sphere)))
+
+(defmethod radius ((sphere sphere))
+  (sphere-radius sphere))
+
 (declaim (inline %region))
 (defstruct (region
             (:include vec3)
@@ -66,6 +96,20 @@
          (v<- region object))
         (T
          object)))
+
+(defmethod ensure-region ((object sphere) &optional region)
+  (let* ((r (sphere-radius object))
+         (2r (* 2.0 r)))
+    (cond (region
+           (v<- region object)
+           (nv- region r)
+           (vsetf (region-size region) 2r 2r 2r)
+           region)
+          (T
+           (region (- (vx3 object) r)
+                   (- (vy3 object) r)
+                   (- (vz3 object) r)
+                   2r 2r 2r)))))
 
 (defmacro with-region ((var) &body body)
   (let ((size (gensym "SIZE"))

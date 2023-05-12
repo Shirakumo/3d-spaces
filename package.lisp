@@ -27,6 +27,8 @@
    #:container-p
    #:region
    #:region-size
+   #:sphere
+   #:sphere-radius
    #:do-all
    #:do-contained
    #:do-overlapping
