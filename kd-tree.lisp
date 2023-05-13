@@ -229,12 +229,12 @@
       (with-array (b (bsize object))
         (flet ((check (node)
                  (let ((axis (node-axis node)))
-                   (when (< (abs (- (aref c axis) (node-position node))) (aref b axis))
+                   (when (<= (abs (- (aref c axis) (node-position node))) (aref b axis))
                      ;; We are intersecting the hyperplane, so we may reside here here.
                      (let* ((children (node-children node))
                             (pos (position object children)))
                        (when pos
-                         (loop for i from pos below (length children)
+                         (loop for i from pos below (1- (length children))
                                do (setf (aref children i) (aref children (1+ i))))
                          (when (= 0 (decf (fill-pointer children)))
                            ;; TODO: Shrink again if possible?
