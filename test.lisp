@@ -193,13 +193,14 @@
 
 (defun benchmark-insert (constructor &key (nodes 1000000) (spread 100.0) (size-spread 1.0))
   (let ((nodes (make-nodes nodes spread size-spread))
-        (tree (funcall constructor)))
-    (time (loop for node across nodes do (space:enter node tree)))))
+        (container (funcall constructor)))
+    (time (loop for node across nodes do (space:enter node container)))
+    container))
 
 (defun benchmark-remove (constructor &key (nodes 1000000) (spread 100.0) (size-spread 1.0) (percentile 0.5))
   (let ((nodes (make-nodes nodes spread size-spread))
         (to-remove (make-array (floor (* percentile nodes))))
-        (tree (funcall constructor)))
+        (container (funcall constructor)))
     (loop with i = 0
           while (< i (length to-remove))
           do (loop for node across nodes
@@ -207,5 +208,6 @@
                    do (when (< (random 1.0) percentile)
                         (setf (aref to-remove i) node)
                         (incf i))))
-    (loop for node across nodes do (space:enter node tree))
-    (time (loop for node across to-remove do (space:leave node tree)))))
+    (loop for node across nodes do (space:enter node container))
+    (time (loop for node across to-remove do (space:leave node container)))
+    container))

@@ -261,6 +261,10 @@
                                do (setf (aref children i) (aref children (1+ i))))
                          (when (node-near node)
                            ;; Since we changed this node, let's see if we can collapse it, too.
+                           ;; Though this kinda sucks, since ideally we'd aggressively collapse
+                           ;; when the child becomes empty. We can't do that, though, since the
+                           ;; child has no way to signal to the parent that it should collapse
+                           ;; without also storing another back link.
                            (let ((near-empty (= 0 (length (node-children (node-near node)))))
                                  (far-empty (= 0 (length (node-children (node-far node))))))
                              (cond ((and near-empty far-empty)
