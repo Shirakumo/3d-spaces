@@ -37,11 +37,28 @@ Every container also implements "For"(https://shinmera.github.io/for)'s iteratio
 ## Supported Structures
 The library supports the following structure types at this point:
 
-- ``org.shirakumo.fraf.trial.bvh2:bvh``
+- ``org.shirakumo.fraf.trial.space.bvh2:bvh``
   A 2D bounding volume hierarchy. You may want to occasionally use ``reoptimize`` to rebalance the tree. The BVH has no size constraints.
-- ``org.shirakumo.fraf.trial.quadtree:quadtree``
+- ``org.shirakumo.fraf.trial.space.quadtree:quadtree``
   A 2D quadtree. The tree will automatically expand and resize as objects are added to it.
-- ``org.shirakumo.fraf.trial.grid3:grid``
+- ``org.shirakumo.fraf.trial.space.grid3:grid``
   A 3D grid. The grid will *not* expand or resize automatically, nor estimate a good grid cell size. It is up to you to specify these properties as suitable for your use case. You may however call ``reoptimize`` at any time to change the grid shape.
+- ``org.shirakumo.fraf.trial.space.kd-tree:kd-tree``
+  A kd-tree. The tree can be created for either, 1, 2, or 3 dimensional spaces. Since the kd-tree is specified on splitting planes, it has no bounded size.
 
 Please see their respective packages for additional supported operations.
+
+## New Structures
+In order to add a new structure, you must:
+
+1. Create a new package to hold your structure functions
+2. Create a subtype of ``container``
+3. Implement ``enter``, ``leave``, ``clear``, and ``call-with-overlapping``
+
+And ideally you should also:
+
+- Implement ``call-with-all``, ``call-with-contained``, ``call-with-intersecting``
+- Implement ``update``, ``check``, ``reoptimize``
+- Implement ``serialize``, ``deserialize``
+- Implement ``for:make-iterator``, ``for:step-functions``
+- Implement ``print-object``, ``describe-object``

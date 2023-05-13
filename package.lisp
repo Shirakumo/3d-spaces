@@ -88,4 +88,6 @@
       (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
     (:export
      #:kd-tree
-     #:make-kd-tree)))
+     #:make-kd-tree
+     #:kd-tree-insert
+     #:kd-tree-remove)))

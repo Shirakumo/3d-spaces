@@ -39,6 +39,15 @@
   (position 0.0 :type single-float)
   (tree-depth 0 :type (unsigned-byte 8)))
 
+(defmethod print-object ((node node) stream)
+  (print-unreadable-object (node stream :type T)
+    (if (node-near node)
+        (format stream "~[X~;Y~;Z~] ~f (~d children)"
+                (node-axis node) (node-position node)
+                (length (node-children node)))
+        (format stream "leaf (~d children)"
+                (length (node-children node))))))
+
 (defstruct (kd-tree
             (:include container)
             (:constructor %make-kd-tree (dimensions split-size max-depth root))
@@ -48,6 +57,21 @@
   (split-size 0 :type (unsigned-byte 8))
   (max-depth 0 :type (unsigned-byte 8))
   (root NIL :type node))
+
+(defmethod print-object ((tree kd-tree) stream)
+  (print-unreadable-object (tree stream :type T)
+    (format stream "~d (~d children)"
+            (kd-tree-dimensions tree)
+            (object-count tree))))
+
+(defmethod describe-object ((tree kd-tree) stream)
+  (call-next-method)
+  (format stream "~&~%-------------------------~%")
+  (describe-tree (kd-tree-root tree)
+                 (lambda (node)
+                   (when (node-near node)
+                     (list (node-near node) (node-far node))))
+                 stream))
 
 (defun %visit-sphere (f node center radius volume)
   (declare (type (simple-array single-float (3)) center volume))
@@ -59,11 +83,10 @@
         (axis (node-axis node))
         (position (node-position node)))
     (funcall f node)
-    (when (< position (aref center axis))
-      (rotatef a b))
     (when a
-      (%visit-sphere f a center radius volume))
-    (when b
+      (when (< position (aref center axis))
+        (rotatef a b))
+      (%visit-sphere f a center radius volume)
       (let ((old (shiftf (aref volume axis) position)))
         ;; If the splitting axis is within the radius, also check the other side
         (when (< (sqrdist volume center) (* radius radius))
@@ -79,11 +102,10 @@
         (axis (node-axis node))
         (position (node-position node)))
     (funcall f node)
-    (when (< position (aref center axis))
-      (rotatef a b))
     (when a
-      (%visit-bbox f a center bsize volume))
-    (when b
+      (when (< position (aref center axis))
+        (rotatef a b))
+      (%visit-bbox f a center bsize volume)
       (let ((old (shiftf (aref volume axis) position)))
         ;; If the splitting axis is within the bounding box, also check the other side.
         (when (<= (aref bsize axis) (abs (- (aref center axis) position)))
@@ -140,7 +162,8 @@
                (setf (node-children node) here))
               (other-axes
                ;; We failed to split and arrived at the initial state. Try another axis.
-               (split-node-axis node children (pop other-axes) other-axes split-size))
+               (setf axis (pop other-axes))
+               (split-node-axis node children axis other-axes split-size))
               (T
                ;; No other axes available, mark node as stuck.
                (setf (node-position node) most-negative-single-float)))))))
@@ -171,36 +194,39 @@
       ;; Try to split the node along the best axis.
       (split-node-axis node children max-dim others split-size))))
 
+(defun recompute-subtree (node max-depth split-size dims)
+  ;; TODO: recompute this subtree
+  )
+
 (defun kd-tree-insert (object tree)
   (let ((dims (kd-tree-dimensions tree))
         (max-depth (kd-tree-max-depth tree))
         (split-size (kd-tree-split-size tree)))
     (with-array (v (location object))
       (with-array (c (location object))
-        (with-array (b (location object))
+        (with-array (b (bsize object))
           (flet ((check (node)
                    (let ((axis (node-axis node)))
-                     (when (<= (abs (- (aref c axis) (node-position node))) (aref b axis))
+                     (when (or (null (node-near node))
+                               (<= (abs (- (aref c axis) (node-position node))) (aref b axis)))
                        ;; We are intersecting the hyperplane, so insert here.
                        (vector-push-extend object (node-children node))
                        (cond ((< (length (node-children node)) split-size))
                              ;; Node is overfull, split it if we can.
                              ((and (< (node-tree-depth node) max-depth)
-                                   (null (node-near node))
-                                   (null (node-far node)))
+                                   (null (node-near node)))
                               (split-node node dims split-size))
                              ;; We should split, but are not leaf.
                              ((< (node-tree-depth node) max-depth)
-                              ;; TODO: recompute this subtree
-                              )))
-                     (return-from kd-tree-insert))))
+                              (recompute-subtree node max-depth split-size dims)))
+                       (return-from kd-tree-insert)))))
             (declare (dynamic-extent #'check))
             (%visit-bbox #'check (kd-tree-root tree) c b v)))))))
 
 (defun kd-tree-remove (object tree)
   (with-array (v (location object))
     (with-array (c (location object))
-      (with-array (b (location object))
+      (with-array (b (bsize object))
         (flet ((check (node)
                  (let ((axis (node-axis node)))
                    (when (< (abs (- (aref c axis) (node-position node))) (aref b axis))
@@ -228,13 +254,14 @@
   tree)
 
 (defmethod reoptimize ((tree kd-tree) &key)
+  (recompute-subtree (kd-tree-root tree) (kd-tree-max-depth tree) (kd-tree-split-size tree) (kd-tree-dimensions tree))
   tree)
 
 (defmethod enter (object (tree kd-tree))
   (kd-tree-insert object tree))
 
 (defmethod leave (object (tree kd-tree))
-  (kd-tree-leave object tree))
+  (kd-tree-remove object tree))
 
 (defmethod call-with-all (function (tree kd-tree))
   (let ((stack (make-array 0 :adjustable T :fill-pointer T))
@@ -252,13 +279,13 @@
                (vector-push-extend (node-far node) stack))
           while (< 0 (length stack)))))
 
-(defmethod call-with-contained (function (tree kd-tree) (region region))
-  )
-
 (defmethod call-with-overlapping (function (tree kd-tree) (region region))
   (with-array (c region)
     (with-array (b (region-size region))
-      (let ((v (make-array 3 :element-type 'single-float)))
+      (let ((v (make-array 3 :element-type 'single-float))
+            (function (etypecase function
+                        (function function)
+                        (symbol (fdefinition function)))))
         (declare (dynamic-extent v))
         (setf (aref v 0) (incf (aref c 0) (setf (aref b 0) (* 0.5 (aref b 0)))))
         (setf (aref v 1) (incf (aref c 1) (setf (aref b 1) (* 0.5 (aref b 1)))))
@@ -271,7 +298,10 @@
 
 (defmethod call-with-overlapping (function (tree kd-tree) (sphere sphere))
   (with-array (c sphere)
-    (let ((v (make-array 3 :element-type 'single-float)))
+    (let ((v (make-array 3 :element-type 'single-float))
+          (function (etypecase function
+                      (function function)
+                      (symbol (fdefinition function)))))
       (declare (dynamic-extent v))
       (setf (aref v 0) (aref c 0))
       (setf (aref v 1) (aref c 1))
@@ -283,4 +313,34 @@
         (%visit-sphere #'visit (kd-tree-root tree) c (sphere-radius sphere) v)))))
 
 (defmethod call-with-intersecting (function (tree kd-tree) ray-origin ray-direction)
-  )
+  (with-array (o ray-origin)
+    (with-array (d ray-direction)
+      (let ((function (etypecase function
+                        (function function)
+                        (symbol (fdefinition function)))))
+        (labels ((visit (node tmax)
+                   (let ((a (node-near node))
+                         (b (node-far node))
+                         (axis (node-axis node))
+                         (position (node-position node)))
+                     (loop for child across (node-children node)
+                           do (funcall function child))
+                     (when a
+                       (when (< position (aref o axis))
+                         (rotatef a b))
+                       (if (= 0.0 (aref d axis))
+                           (visit a tmax)
+                           (let ((tt (/ (- position (aref o axis)) (aref d axis))))
+                             (cond ((and (<= 0.0 tt) (< tt tmax))
+                                    (visit a tt)
+                                    (let ((ox (aref o 0)) (oy (aref o 1)) (oz (aref o 2)))
+                                      (incf (aref o 0) (* tt (aref d 0)))
+                                      (incf (aref o 1) (* tt (aref d 1)))
+                                      (incf (aref o 2) (* tt (aref d 2)))
+                                      (visit b (- tmax tt))
+                                      (setf (aref o 0) ox)
+                                      (setf (aref o 1) oy)
+                                      (setf (aref o 2) oz)))
+                                   (T
+                                    (visit a tmax)))))))))
+          (visit (kd-tree-root tree) most-positive-single-float))))))
