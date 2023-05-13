@@ -346,3 +346,18 @@
     (do-all (element container count)
       (declare (ignore element))
       (incf count))))
+
+(defun describe-tree (node children-fun stream)
+  (fresh-line stream)
+  (labels ((recurse (node last)
+             (when last
+               (destructuring-bind (cur . rest) last
+                 (dolist (p (reverse rest))
+                   (format stream "~:[│  ~;   ~]" p))
+                 (format stream "~:[├~;└~]─" cur)))
+             (format stream " ~a~%" node)
+             (loop with children = (funcall children-fun node)
+                   with max = (1- (length children))
+                   for j from 0 to max
+                   do (recurse (nth j children) (list* (= max j) last)))))
+    (recurse node ())))
