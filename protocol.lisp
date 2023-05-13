@@ -14,6 +14,7 @@
 (defgeneric check (container))
 (defgeneric clear (container))
 (defgeneric reoptimize (container &key))
+(defgeneric object-count (container))
 (defgeneric enter (object container))
 (defgeneric leave (object container))
 (defgeneric update (object container))
@@ -339,3 +340,9 @@
                                :if-exists :supersede
                                :element-type '(unsigned-byte 8))
     (deserialize container stream id->object)))
+
+(defmethod object-count ((container container))
+  (let ((count 0))
+    (do-all (element container count)
+      (declare (ignore element))
+      (incf count))))

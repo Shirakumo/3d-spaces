@@ -16,6 +16,7 @@
    #:check
    #:clear
    #:reoptimize
+   #:object-count
    #:enter
    #:leave
    #:update
@@ -40,6 +41,8 @@
 (macrolet ((defpackage* (name &rest args)
              `(defpackage ,name
                 ,@args
+                (:local-nicknames
+                 (#:sequences #:org.shirakumo.trivial-extensible-sequences))
                 (:export ,@(loop for s being the external-symbols of '#:org.shirakumo.fraf.trial.space
                                  collect s)))))
   (defpackage* #:org.shirakumo.fraf.trial.space.bvh2

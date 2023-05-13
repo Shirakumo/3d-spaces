@@ -64,6 +64,13 @@ Each container type may accept specific arguments to control the
 opitimization.
 
 See CONTAINER (type)")
+
+  (function object-count
+    "Computes the number of objects in the container.
+
+Note that this is usually not a constant-time operation.
+
+See CONTAINER (type)")
   
   (function enter
     "Adds objects to the container.
@@ -195,6 +202,7 @@ See CONTAINER-P
 See CHECK
 See CLEAR
 See REOPTIMIZE
+See OBJECT-COUNT
 See ENTER
 See LEAVE
 See UPDATE
