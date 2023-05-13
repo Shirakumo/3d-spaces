@@ -13,7 +13,9 @@
    (#:grid3 #:org.shirakumo.fraf.trial.space.grid3)
    (#:kd-tree #:org.shirakumo.fraf.trial.space.kd-tree))
   (:export
-   #:test))
+   #:test
+   #:benchmark-insert
+   #:benchmark-remove))
 
 (in-package #:org.shirakumo.fraf.trial.space.test)
 
@@ -183,3 +185,27 @@
                                          (random* 0 200) (random* 0 200) (random* 0 200))
               do (space:do-contained (object container region)
                    (true (space:region-overlaps-p object region))))))))
+
+(defun make-nodes (count spread size-spread)
+  (let ((nodes (make-array count)))
+    (map-into nodes (lambda () (box3 (vrand (vec3) spread)
+                                     (vrand (vec3) size-spread))))))
+
+(defun benchmark-insert (constructor &key (nodes 1000000) (spread 100.0) (size-spread 1.0))
+  (let ((nodes (make-nodes nodes spread size-spread))
+        (tree (funcall constructor)))
+    (time (loop for node across nodes do (space:enter node tree)))))
+
+(defun benchmark-remove (constructor &key (nodes 1000000) (spread 100.0) (size-spread 1.0) (percentile 0.5))
+  (let ((nodes (make-nodes nodes spread size-spread))
+        (to-remove (make-array (floor (* percentile nodes))))
+        (tree (funcall constructor)))
+    (loop with i = 0
+          while (< i (length to-remove))
+          do (loop for node across nodes
+                   while (< i (length to-remove))
+                   do (when (< (random 1.0) percentile)
+                        (setf (aref to-remove i) node)
+                        (incf i))))
+    (loop for node across nodes do (space:enter node tree))
+    (time (loop for node across to-remove do (space:leave node tree)))))
