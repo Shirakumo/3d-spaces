@@ -34,7 +34,7 @@
             (:predicate NIL))
   (near NIL :type (or null node))
   (far NIL :type (or null node))
-  (children (make-array 0 :adjustable T :fill-pointer T) :type (and vector (not simple-vector)))
+  (children (make-array 0 :adjustable T :fill-pointer T) :type (and (vector T) (not simple-vector)))
   (axis 0 :type (unsigned-byte 8))
   (position 0.0 :type single-float)
   (tree-depth 0 :type (unsigned-byte 8)))
@@ -74,6 +74,7 @@
                  stream))
 
 (defun %visit-sphere (f node center radius volume)
+  (declare (optimize speed (safety 1)))
   (declare (type (simple-array single-float (3)) center volume))
   (declare (type single-float radius))
   (declare (type function f))
@@ -94,6 +95,7 @@
         (setf (aref volume axis) old)))))
 
 (defun %visit-bbox (f node center bsize volume)
+  (declare (optimize speed (safety 1)))
   (declare (type (simple-array single-float (3)) center bsize volume))
   (declare (type function f))
   (declare (type node node))
@@ -124,6 +126,10 @@
         (%visit-bbox f node c b v)))))
 
 (defun split-node-axis (node children axis other-axes split-size)
+  (declare (optimize speed (safety 1)))
+  (declare (type (unsigned-byte 8) axis split-size))
+  (declare (type node node))
+  (declare (type (and (vector T) (not simple-vector)) children))
   (let ((dim-value (ecase axis
                      (0 (lambda (o) (vx (location o))))
                      (1 (lambda (o) (vy (location o))))
@@ -132,6 +138,7 @@
                     (0 #'vx)
                     (1 #'vy)
                     (2 #'vz))))
+    (declare (type (function (T) single-float) dim-value dim-extr))
     (sort children #'< :key dim-value)
     (let* ((mid (truncate (length children) 2))
            (median (if (oddp (length children))
@@ -170,6 +177,8 @@
 
 (defun split-node (node dims split-size)
   ;; TODO: specialise on DIMS so we can use VX2 / VX3 etc
+  (declare (optimize speed (safety 1)))
+  (declare (type (unsigned-byte 8) split-size dims))
   (declare (type node node))
   (unless (= most-negative-single-float (node-position node))
     (let* ((children (node-children node))
@@ -177,13 +186,14 @@
                                  :adjustable T :fill-pointer (length children)
                                  :initial-contents children))
            (min 0.0) (max 0.0) (max-range 0.0) (max-dim 0) (others ()))
+      (declare (type single-float min max max-range))
       ;; Figure out widest spread axis
       (dotimes (axis dims)
         (loop with accessor = (ecase axis
                                 (0 #'vx) (1 #'vy) (2 #'vz))
               for child across children
-              for loc = (funcall accessor (location child))
-              for siz = (funcall accessor (bsize child))
+              for loc = (the single-float (funcall accessor (location child)))
+              for siz = (the single-float (funcall accessor (bsize child)))
               do (setf min (min min (- loc siz)))
                  (setf max (max max (+ loc siz))))
         (cond ((< max-range (- max min))
@@ -199,6 +209,7 @@
   )
 
 (defun kd-tree-insert (object tree)
+  (declare (optimize speed (safety 1)))
   (let ((dims (kd-tree-dimensions tree))
         (max-depth (kd-tree-max-depth tree))
         (split-size (kd-tree-split-size tree)))
@@ -223,7 +234,19 @@
             (declare (dynamic-extent #'check))
             (%visit-bbox #'check (kd-tree-root tree) c b v)))))))
 
+(declaim (inline transfer-node))
+(defun transfer-node (source target)
+  (declare (optimize speed (safety 1)))
+  (declare (type node source target))
+  (setf (node-near target) (node-near source))
+  (setf (node-far target) (node-far source))
+  (setf (node-children target) (node-children source))
+  (setf (node-axis target) (node-axis source))
+  (setf (node-position target) (node-position source))
+  (setf (node-tree-depth target) (node-tree-depth source)))
+
 (defun kd-tree-remove (object tree)
+  (declare (optimize speed (safety 1)))
   (with-array (v (location object))
     (with-array (c (location object))
       (with-array (b (bsize object))
@@ -236,9 +259,22 @@
                        (when pos
                          (loop for i from pos below (1- (length children))
                                do (setf (aref children i) (aref children (1+ i))))
-                         (when (= 0 (decf (fill-pointer children)))
-                           ;; TODO: Shrink again if possible?
-                           )
+                         (when (node-near node)
+                           ;; Since we changed this node, let's see if we can collapse it, too.
+                           (let ((near-empty (= 0 (length (node-children (node-near node)))))
+                                 (far-empty (= 0 (length (node-children (node-far node))))))
+                             (cond ((and near-empty far-empty)
+                                    ;; Both our children are worthless, so become a leaf.
+                                    (setf (node-near node) NIL)
+                                    (setf (node-far node) NIL)
+                                    (setf (node-tree-depth node) 0))
+                                   ((< 0 (length children)))
+                                   (near-empty
+                                    ;; We are empty, so we can become the far node.
+                                    (transfer-node (node-far node) node))
+                                   (far-empty
+                                    ;; We are empty, so we can become the near node.
+                                    (transfer-node (node-near node) node)))))
                          (return-from kd-tree-remove)))))))
           (declare (dynamic-extent #'check))
           (%visit-bbox #'check (kd-tree-root tree) c b v))))))
@@ -264,6 +300,7 @@
   (kd-tree-remove object tree))
 
 (defmethod call-with-all (function (tree kd-tree))
+  (declare (optimize speed (safety 1)))
   (let ((stack (make-array 0 :adjustable T :fill-pointer T))
         (function (etypecase function
                     (function function)
@@ -280,6 +317,7 @@
           while (< 0 (length stack)))))
 
 (defmethod call-with-overlapping (function (tree kd-tree) (region region))
+  (declare (optimize speed (safety 1)))
   (with-array (c region)
     (with-array (b (region-size region))
       (let ((v (make-array 3 :element-type 'single-float))
@@ -297,6 +335,7 @@
           (%visit-bbox #'visit (kd-tree-root tree) c b v))))))
 
 (defmethod call-with-overlapping (function (tree kd-tree) (sphere sphere))
+  (declare (optimize speed (safety 1)))
   (with-array (c sphere)
     (let ((v (make-array 3 :element-type 'single-float))
           (function (etypecase function
@@ -313,12 +352,15 @@
         (%visit-sphere #'visit (kd-tree-root tree) c (sphere-radius sphere) v)))))
 
 (defmethod call-with-intersecting (function (tree kd-tree) ray-origin ray-direction)
+  (declare (optimize speed (safety 1)))
   (with-array (o ray-origin)
     (with-array (d ray-direction)
       (let ((function (etypecase function
                         (function function)
                         (symbol (fdefinition function)))))
         (labels ((visit (node tmax)
+                   (declare (type node node))
+                   (declare (type single-float tmax))
                    (let ((a (node-near node))
                          (b (node-far node))
                          (axis (node-axis node))
@@ -346,6 +388,7 @@
           (visit (kd-tree-root tree) most-positive-single-float))))))
 
 (defun kd-tree-nearest (location tree &optional reject)
+  (declare (optimize speed (safety 1)))
   (with-array (v location)
     (with-array (c location)
       (let ((radius most-positive-single-float)
