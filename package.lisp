@@ -8,6 +8,7 @@
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.flare.matrix)
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))
+  (:intern #:describe-tree)
   (:export
    #:location
    #:bsize
