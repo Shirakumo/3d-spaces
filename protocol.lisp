@@ -182,23 +182,9 @@
   (sequences:dosequence (child object)
     (leave child container)))
 
-(defmethod update (object (container container))
-  (leave object container)
-  (enter object container))
-
 (defmethod update ((object sequences:sequence) (container container))
   (sequences:dosequence (child object)
     (update child container)))
-
-(defmethod call-with-contained (function (container container) thing)
-  (with-region (region)
-    (ensure-region thing region)
-    (call-with-contained function container region)))
-
-(defmethod call-with-overlapping (function (container container) thing)
-  (with-region (region)
-    (ensure-region thing region)
-    (call-with-overlapping function container region)))
 
 (defmacro do-all ((element container &optional result) &body body)
   (let ((thunk (gensym "THUNK")))
@@ -341,11 +327,49 @@
                                :element-type '(unsigned-byte 8))
     (deserialize container stream id->object)))
 
+(defmethod check ((container container)))
+
+(defmethod reoptimize ((container container) &key))
+
 (defmethod object-count ((container container))
   (let ((count 0))
     (do-all (element container count)
       (declare (ignore element))
       (incf count))))
+
+(defmethod update (object (container container))
+  (leave object container)
+  (enter object container))
+
+(defmethod call-with-all (function (container container))
+  (let* ((d most-positive-single-float)
+         (x (* d -0.5)))
+    (call-with-overlapping function container (region x x x d d d))))
+
+(defmethod call-with-contained (function (container container) (region region))
+  (call-with-overlapping function container region))
+
+(defmethod call-with-contained (function (container container) thing)
+  (with-region (region)
+    (ensure-region thing region)
+    (call-with-contained function container region)))
+
+(defmethod call-with-overlapping (function (container container) thing)
+  (with-region (region)
+    (ensure-region thing region)
+    (call-with-overlapping function container region)))
+
+(defmethod call-with-intersecting (function (container container) ray-origin ray-direction)
+  (let ((region (etypecase ray-origin
+                  (vec2 (region (vx ray-origin) (vy ray-origin) 0.0
+                                (+ (vx ray-origin) (vx ray-direction))
+                                (+ (vy ray-origin) (vy ray-direction))
+                                0.0))
+                  (vec3 (region (vx ray-origin) (vy ray-origin) (vz ray-origin)
+                                (+ (vx ray-origin) (vx ray-direction))
+                                (+ (vy ray-origin) (vy ray-direction))
+                                (+ (vz ray-origin) (vz ray-direction)))))))
+    (call-with-overlapping function container region)))
 
 (defun describe-tree (node children-fun stream)
   (fresh-line stream)
