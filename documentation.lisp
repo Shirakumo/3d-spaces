@@ -582,3 +582,48 @@ See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
 
 See GRID (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE"))
+
+(in-package #:org.shirakumo.fraf.trial.space.kd-tree)
+
+(docs:define-docs
+  (type kd-tree
+    "A k-dimensional tree
+
+This is not a fully generalised implementation and is restricted to
+either 1, 2, or 3 dimensions. You can also specify the maximum tree
+depth and default splitting size to optimise the tree structure.
+
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:CONTAINER
+See MAKE-KD-TREE
+See KD-TREE-INSERT
+See KD-TREE-REMOVE
+See KD-TREE-NEAREST
+See QUADTREE (type)")
+  
+  (function make-kd-tree
+    "Creates a new grid.
+
+If no LOCATION is passed, it is centered at the origin. If no BSIZE is
+passed, it is sized to a half-size of 100 in every direction.
+
+See KD-TREE (type)")
+  
+  (function kd-tree-insert
+    "Fast track for ENTER.
+
+See KD-TREE (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
+  
+  (function kd-tree-remove
+    "Fast track for LEAVE.
+
+See KD-TREE (type)
+See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
+  
+  (function kd-tree-nearest
+    "Find the nearest object to a location
+
+You may also specify REJECT to ensure that the object you're searching
+a nearest neighbour to isn't itself selected.
+
+See KD-TREE (type)"))
