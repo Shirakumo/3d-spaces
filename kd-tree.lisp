@@ -29,7 +29,7 @@
        ,@body)))
 
 (defstruct (node
-            (:constructor make-node ())
+            (:constructor make-node (&optional children))
             (:copier NIL)
             (:predicate NIL))
   (near NIL :type (or null node))
@@ -101,7 +101,7 @@
       (with-array (b bsize)
         (%visit-bbox f node c b v)))))
 
-(defun split-node-axis (node children axis other-axes)
+(defun split-node-axis (node children axis other-axes split-size)
   (let ((dim-value (ecase axis
                      (0 (lambda (o) (vx (location o))))
                      (1 (lambda (o) (vy (location o))))
@@ -117,8 +117,8 @@
                        (* 0.5 (/ (funcall dim-value (aref children (+ mid 0)))
                                  (funcall dim-value (aref children (+ mid 1))))))))
       ;; Okey, now redistribute.
-      (let ((n (make-node))
-            (f (make-node))
+      (let ((near (make-array split-size :adjustable T :fill-pointer 0))
+            (far (make-array split-size :adjustable T :fill-pointer 0))
             (here (node-children node)))
         (setf (fill-pointer here) 0)
         (loop for child across children
@@ -127,22 +127,20 @@
                         ;; We intersect the hyperplane, so keep it here.
                         (vector-push child here))
                        ((< location median)
-                        ;; Insert into near
-                        (vector-push-extend child (node-children n)))
+                        (vector-push-extend child near))
                        (T
-                        ;; Insert into far
-                        (vector-push-extend child (node-children f)))))
+                        (vector-push-extend child far))))
         (cond ((/= (length here) (length children))
                ;; We split successfully, actually modify the node now.
                (incf (node-tree-depth node))
                (setf (node-axis node) axis)
                (setf (node-position node) median)
-               (setf (node-near node) n)
-               (setf (node-far node) f)
+               (setf (node-near node) (make-node near))
+               (setf (node-far node) (make-node far))
                (setf (node-children node) here))
               (other-axes
                ;; We failed to split and arrived at the initial state. Try another axis.
-               (split-node-axis node children (pop other-axes) other-axes))
+               (split-node-axis node children (pop other-axes) other-axes split-size))
               (T
                ;; No other axes available, mark node as stuck.
                (setf (node-position node) most-negative-single-float)))))))
@@ -171,7 +169,7 @@
               (T
                (push axis others))))
       ;; Try to split the node along the best axis.
-      (split-node-axis node children max-dim others))))
+      (split-node-axis node children max-dim others split-size))))
 
 (defun kd-tree-insert (object tree)
   (let ((dims (kd-tree-dimensions tree))
