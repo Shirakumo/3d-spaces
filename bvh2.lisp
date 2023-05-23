@@ -364,11 +364,11 @@
 
 (defmethod call-with-overlapping (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
-        (loc (3d-vectors::%vec2 (vx3 region) (vy3 region)))
-        (siz (3d-vectors::%vec2 (vx3 (region-size region)) (vy3 (region-size region)))))
+  (let* ((function (etypecase function
+                     (symbol (fdefinition function))
+                     (function function)))
+         (siz (3d-vectors::%vec2 (* 0.5 (vx3 (region-size region))) (* 0.5 (vy3 (region-size region)))))
+         (loc (3d-vectors::%vec2 (+ (vx3 region) (vx2 siz)) (+ (vy3 region) (vy2 siz)))))
     (declare (dynamic-extent loc siz))
     (labels ((recurse (node)
                (when (and node (node-contains-p* node loc siz))
