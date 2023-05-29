@@ -406,7 +406,8 @@
                            (axis (node-axis node))
                            (position (node-position node)))
                        (loop for child across (node-children node)
-                             for distance = (sqrdist c (location child))
+                             for distance = (with-array (l (location child))
+                                              (sqrdist c l))
                              do (when (< distance radius)
                                   (setf radius (funcall function child distance))))
                        (when a
@@ -446,20 +447,22 @@
     (declare (type (unsigned-byte 32) max-i found))
     (flet ((visit (candidate distance)
              (declare (type single-float distance))
-             (when (and (funcall test candidate)
-                        (< distance (aref distances max-i)))
+             (when (and (< distance (aref distances max-i))
+                        (funcall test candidate))
                ;; Sorted insertion to ensure that we keep track of the k nearest.
                ;; TODO: I feel like this might be better if we had a doubly linked
                ;;       list instead, since then we could insert more efficiently?
                (incf found)
                (loop for i of-type (unsigned-byte 32) downfrom max-i above 0
                      do (cond ((< distance (aref distances (1- i)))
-                               (setf (aref distances i) (aref distances (1- i)))
-                               (setf (aref candidates i) (aref candidates (1- i))))
+                               (setf (aref distances i) (aref distances (1- i))
+                                     (aref candidates i) (aref candidates (1- i))))
                               (T
-                               (setf (aref distances i) distance)
-                               (setf (aref candidates i) candidate)
-                               (return)))))
+                               (setf (aref distances i) distance
+                                     (aref candidates i) candidate)
+                               (return)))
+                     finally (setf (aref distances 0) distance
+                                   (aref candidates 0) candidate)))
              (aref distances max-i)))
       (declare (dynamic-extent #'visit))
       (kd-tree-call-with-nearest #'visit location tree)
