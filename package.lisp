@@ -92,4 +92,5 @@
      #:make-kd-tree
      #:kd-tree-insert
      #:kd-tree-remove
-     #:kd-tree-nearest)))
+     #:kd-tree-nearest
+     #:kd-tree-call-with-nearest)))

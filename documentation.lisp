@@ -598,6 +598,7 @@ See MAKE-KD-TREE
 See KD-TREE-INSERT
 See KD-TREE-REMOVE
 See KD-TREE-NEAREST
+See KD-TREE-CALL-WITH-NEAREST
 See QUADTREE (type)")
   
   (function make-kd-tree
@@ -626,4 +627,16 @@ See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
 You may also specify REJECT to ensure that the object you're searching
 a nearest neighbour to isn't itself selected.
 
+See KD-TREE-CALL-WITH-NEAREST
+See KD-TREE (type)")
+
+  (function kd-tree-call-with-nearest
+    "Iteratively find the nearest objects to a location
+
+Calls FUNCTION with objects that iteratively lie closer to the
+LOCATION and that object's current squared distance to the target
+location. The FUNCTION must return a new radius to use to narrow the
+search.
+
+See KD-TREE-NEAREST
 See KD-TREE (type)"))
