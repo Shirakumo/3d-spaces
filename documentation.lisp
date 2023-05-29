@@ -639,6 +639,11 @@ You may also specify TEST, which should be a function of one argument
 that returns true if the candidate object passed in should be
 considered a neighbour or not.
 
+Returns two values:
+- A simple-vector of size K containing the nearest objects in order
+  of nearest to farthest.
+- A counter of how many entries in the vector are set.
+
 See KD-TREE-NEAREST
 See KD-TREE-CALL-WITH-NEAREST
 See KD-TREE (type)")

@@ -436,13 +436,14 @@
   (declare (optimize speed (safety 1)))
   (check-type k (and (integer 1) (unsigned-byte 32)))
   (let* ((max-i (1- k))
-         (candidates (make-array k :element-type T))
+         (candidates (make-array k :element-type T :initial-element NIL))
          (distances (make-array k :element-type 'single-float :initial-element most-positive-single-float))
          (test (etypecase test
                  (null (constantly T))
                  (function test)
-                 (symbol (fdefinition test)))))
-    (declare (type (unsigned-byte 32) max-i))
+                 (symbol (fdefinition test))))
+         (found 0))
+    (declare (type (unsigned-byte 32) max-i found))
     (flet ((visit (candidate distance)
              (declare (type single-float distance))
              (when (and (funcall test candidate)
@@ -450,6 +451,7 @@
                ;; Sorted insertion to ensure that we keep track of the k nearest.
                ;; TODO: I feel like this might be better if we had a doubly linked
                ;;       list instead, since then we could insert more efficiently?
+               (incf found)
                (loop for i of-type (unsigned-byte 32) downfrom max-i above 0
                      do (cond ((< distance (aref distances (1- i)))
                                (setf (aref distances i) (aref distances (1- i)))
@@ -461,4 +463,4 @@
              (aref distances max-i)))
       (declare (dynamic-extent #'visit))
       (kd-tree-call-with-nearest #'visit location tree)
-      candidates)))
+      (values candidates (min (length candidates) found)))))
