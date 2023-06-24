@@ -380,8 +380,9 @@
                    (format stream "~:[│  ~;   ~]" p))
                  (format stream "~:[├~;└~]─" cur)))
              (format stream " ~a~%" node)
-             (loop with children = (funcall children-fun node)
-                   with max = (1- (length children))
-                   for j from 0 to max
-                   do (recurse (nth j children) (list* (= max j) last)))))
+             (let ((children (funcall children-fun node)))
+               (when (typep children 'sequence)
+                 (loop with max = (1- (length children))
+                       for j from 0 to max
+                       do (recurse (elt children j) (list* (= max j) last)))))))
     (recurse node ())))
