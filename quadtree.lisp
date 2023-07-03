@@ -1,9 +1,3 @@
-#|
- This file is a part of 3d-spaces
- (c) 2023 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
- Author: Janne Pakarinen <gingeralesy@gmail.com>
-|#
-
 (in-package #:org.shirakumo.fraf.trial.space.quadtree)
 
 (declaim (inline make-object-vector))

@@ -1,14 +1,8 @@
-#|
- This file is a part of 3d-spaces
- (c) 2023 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
- Author: Nicolas Hafner <shinmera@tymoon.eu>
-|#
-
 (asdf:defsystem 3d-spaces-test
   :version "1.0.0"
   :license "zlib"
-  :author "Nicolas Hafner <shinmera@tymoon.eu>"
-  :maintainer "Nicolas Hafner <shinmera@tymoon.eu>"
+  :author "Yukari Hafner <shinmera@tymoon.eu>"
+  :maintainer "Yukari Hafner <shinmera@tymoon.eu>"
   :description "Tests for the 3d-spaces system."
   :homepage "https://shirakumo.github.io/3d-spaces/"
   :bug-tracker "https://github.com/shirakumo/3d-spaces/issues"

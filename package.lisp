@@ -1,9 +1,3 @@
-#|
- This file is a part of 3d-spaces
- (c) 2023 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
- Author: Nicolas Hafner <shinmera@tymoon.eu>
-|#
-
 (defpackage #:org.shirakumo.fraf.trial.space
   (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.flare.matrix)
   (:local-nicknames

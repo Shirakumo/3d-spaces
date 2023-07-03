@@ -1,9 +1,3 @@
-#|
- This file is a part of 3d-spaces
- (c) 2023 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
- Author: Nicolas Hafner <shinmera@tymoon.eu>
-|#
-
 (in-package #:org.shirakumo.fraf.trial.space.bvh2)
 
 ;; CF https://www.researchgate.net/publication/254007711_Fast_Effective_BVH_Updates_for_Animated_Scenes
