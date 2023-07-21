@@ -622,6 +622,9 @@ See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
 You may also specify REJECT to ensure that the object you're searching
 a nearest neighbour to isn't itself selected.
 
+If MAX-RADIUS is specified, the closest candidate is only returned if
+it is within MAX-RADIUS to the location.
+
 See KD-TREE-K-NEAREST
 See KD-TREE-CALL-WITH-NEAREST
 See KD-TREE (type)")
