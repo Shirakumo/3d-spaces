@@ -137,7 +137,7 @@
     (let* ((mid (truncate (length children) 2))
            (median (if (oddp (length children))
                        (funcall dim-value (aref children mid))
-                       (* 0.5 (/ (funcall dim-value (aref children (+ mid 0)))
+                       (* 0.5 (+ (funcall dim-value (aref children (+ mid 0)))
                                  (funcall dim-value (aref children (+ mid 1))))))))
       ;; Okey, now redistribute.
       (let ((near (make-array split-size :adjustable T :fill-pointer 0))
