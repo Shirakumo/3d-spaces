@@ -1,5 +1,5 @@
 (defpackage #:org.shirakumo.fraf.trial.space
-  (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.flare.matrix)
+  (:use #:cl #:org.shirakumo.fraf.math)
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))
   (:intern #:describe-tree)
@@ -42,7 +42,7 @@
                 (:export ,@(loop for s being the external-symbols of '#:org.shirakumo.fraf.trial.space
                                  collect s)))))
   (defpackage* #:org.shirakumo.fraf.trial.space.bvh2
-    (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+      (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
     (:export
      #:bvh
      #:make-bvh
@@ -52,7 +52,7 @@
      #:bvh-lines))
 
   (defpackage* #:org.shirakumo.fraf.trial.space.grid3
-    (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+      (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
     (:export
      #:grid
      #:make-grid
@@ -63,7 +63,7 @@
      #:grid-update))
 
   (defpackage* #:org.shirakumo.fraf.trial.space.quadtree
-    (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+      (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
     (:export
      #:quadtree
      #:make-quadtree
@@ -80,7 +80,7 @@
      #:quadtree-lines))
 
   (defpackage* #:org.shirakumo.fraf.trial.space.kd-tree
-      (:use #:cl #:org.shirakumo.flare.vector #:org.shirakumo.fraf.trial.space)
+      (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
     (:export
      #:kd-tree
      #:make-kd-tree

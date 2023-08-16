@@ -26,7 +26,7 @@
 
 (defstruct (sphere
             (:include vec3)
-            (:constructor %sphere (3d-vectors::%vx3 3d-vectors::%vy3 3d-vectors::%vz3 radius))
+            (:constructor %sphere (org.shirakumo.fraf.math.vectors::varr3 radius))
             (:predicate NIL)
             (:copier NIL))
   (radius 0.0 :type single-float))
@@ -37,11 +37,15 @@
 
 (defmethod make-load-form ((sphere sphere) &optional environment)
   (declare (ignore environment))
-  `(%sphere ,(vx sphere) ,(vy sphere) ,(vz sphere) ,(sphere-radius sphere)))
+  `(%sphere ,(varr3 sphere) ,(sphere-radius sphere)))
 
 (declaim (inline sphere))
 (defun sphere (x y z r)
-  (%sphere (float x 0f0) (float y 0f0) (float z 0f0) (float r 0f0)))
+  (let ((arr (make-array 3 :element-type 'single-float)))
+    (setf (aref arr 0) (float x 0f0))
+    (setf (aref arr 1) (float y 0f0))
+    (setf (aref arr 2) (float z 0f0))
+    (%sphere arr (float r 0f0))))
 
 (defmethod location ((sphere sphere))
   sphere)
@@ -57,7 +61,7 @@
 (declaim (inline %region))
 (defstruct (region
             (:include vec3)
-            (:constructor %region (3d-vectors::%vx3 3d-vectors::%vy3 3d-vectors::%vz3 size))
+            (:constructor %region (org.shirakumo.fraf.math.vectors::varr3 size))
             (:predicate NIL)
             (:copier NIL))
   (size NIL :type vec3))
@@ -72,12 +76,15 @@
 (defmethod make-load-form ((region region) &optional environment)
   (declare (ignore environment))
   (let ((size (region-size region)))
-    `(%region ,(vx region) ,(vy region) ,(vz region)
-              ,(vx size) ,(vy size) ,(vz size))))
+    `(%region ,(varr region) ,(vx size) ,(vy size) ,(vz size))))
 
 (declaim (inline region))
 (defun region (x y z w h d)
-  (%region (float x 0f0) (float y 0f0) (float z 0f0) (vec w h d)))
+  (let ((arr (make-array 3 :element-type 'single-float)))
+    (setf (aref arr 0) (float x 0f0))
+    (setf (aref arr 1) (float y 0f0))
+    (setf (aref arr 2) (float z 0f0))
+    (%region arr (vec w h d))))
 
 (defmethod location ((region region))
   (nv+ (bsize region) region))
@@ -108,10 +115,12 @@
 
 (defmacro with-region ((var) &body body)
   (let ((size (gensym "SIZE"))
+        (array (gensym "ARRAY"))
         (region (gensym "REGION")))
-    `(let* ((,size (3d-vectors::%vec3 0.0 0.0 0.0))
-            (,region (%region 0.0 0.0 0.0 ,size)))
-       (declare (dynamic-extent ,size ,region))
+    `(let* ((,size (vec 0.0 0.0 0.0))
+            (,array (make-array 3 :element-type 'single-float :initial-element 0f0))
+            (,region (%region array ,size)))
+       (declare (dynamic-extent ,array ,size ,region))
        (let ((,var ,region))
          ,@body))))
 
@@ -139,7 +148,7 @@
                            (vz3 rsize) 0.0))))
            region)
           (T
-           (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))))
+           (ensure-region object (region 0.0 0.0 0.0 0.0 0.0 0.0))))))
 
 (defmethod ensure-region ((object vec2) &optional region)
   (if region
@@ -151,7 +160,7 @@
               (vy3 rsize) 0.0
               (vz3 rsize) 0.0)
         region)
-      (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))
+      (ensure-region object (region 0.0 0.0 0.0 0.0 0.0 0.0))))
 
 (defmethod ensure-region ((object vec3) &optional region)
   (if region
@@ -163,7 +172,7 @@
               (vy3 rsize) 0.0
               (vz3 rsize) 0.0)
         region)
-      (ensure-region object (%region 0.0 0.0 0.0 (vec3 0.0 0.0 0.0)))))
+      (ensure-region object (region 0.0 0.0 0.0 0.0 0.0 0.0))))
 
 (defmethod check ((container container)))
 (defmethod reoptimize ((container container) &key))
@@ -251,7 +260,7 @@
         (setf y- 0.0 y+ 0.0))
       (when (= z- most-positive-single-float)
         (setf z- 0.0 z+ 0.0)))
-    (%region x- y- z- (vec (- x+ x-) (- y+ y-) (- z+ z-)))))
+    (region x- y- z- (- x+ x-) (- y+ y-) (- z+ z-))))
 
 (declaim (inline region-overlaps-p))
 (defun region-overlaps-p (object region)

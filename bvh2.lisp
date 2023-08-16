@@ -4,7 +4,7 @@
 
 (defstruct (bvh-node
             (:include vec4)
-            (:constructor %make-bvh-node (3d-vectors::%vx4 3d-vectors::%vy4 3d-vectors::%vz4 3d-vectors::%vw4 d p l r o))
+            (:constructor %make-bvh-node (org.shirakumo.fraf.math.vectors::varr4 d p l r o))
             (:copier NIL)
             (:predicate NIL))
   (d 0 :type (unsigned-byte 16))
@@ -20,13 +20,13 @@
 
 (defun make-bvh-node-for (object parent)
   (let ((loc (location object))
-        (siz (bsize object)))
-    (%make-bvh-node (- (vx loc) (vx siz))
-                    (- (vy loc) (vy siz))
-                    (+ (vx loc) (vx siz))
-                    (+ (vy loc) (vy siz))
-                    (1+ (bvh-node-d parent))
-                    parent NIL NIL object)))
+        (siz (bsize object))
+        (arr (make-array 4 :element-type 'single-float)))
+    (setf (aref arr 0) (- (vx loc) (vx siz)))
+    (setf (aref arr 1) (- (vy loc) (vy siz)))
+    (setf (aref arr 2) (+ (vx loc) (vx siz)))
+    (setf (aref arr 3) (+ (vy loc) (vy siz)))
+    (%make-bvh-node arr (1+ (bvh-node-d parent)) parent NIL NIL object)))
 
 (defun node-refit-object (node object)
   (let ((x (vx4 node)) (y (vy4 node))
@@ -201,7 +201,7 @@
             (:constructor make-bvh ())
             (:copier NIL)
             (:predicate NIL))
-  (root (%make-bvh-node 0f0 0f0 0f0 0f0 0 NIL NIL NIL NIL) :type bvh-node)
+  (root (%make-bvh-node (make-array 4 :element-type 'single-float :initial-element 0f0) 0 NIL NIL NIL NIL) :type bvh-node)
   (table (make-hash-table :test 'eq) :type hash-table))
 
 (defun bvh-insert (bvh object)
@@ -242,7 +242,7 @@
 
 (defmethod clear ((bvh bvh))
   (clrhash (bvh-table bvh))
-  (setf (bvh-root bvh) (%make-bvh-node 0f0 0f0 0f0 0f0 0 NIL NIL NIL NIL))
+  (setf (bvh-root bvh) (%make-bvh-node (make-array 4 :element-type 'single-float :initial-element 0f0) 0 NIL NIL NIL NIL))
   bvh)
 
 (defmethod describe-object ((bvh bvh) stream)
@@ -332,9 +332,9 @@
                     (symbol (fdefinition function))
                     (function function)))
         (tentative (make-array 256))
-        (region (3d-vectors::%vec4 (vx3 region) (vy3 region)
-                                   (+ (vx3 region) (vx3 (region-size region)))
-                                   (+ (vy3 region) (vy3 (region-size region)))))
+        (region (vec (vx3 region) (vy3 region)
+                     (+ (vx3 region) (vx3 (region-size region)))
+                     (+ (vy3 region) (vy3 (region-size region)))))
         (i 0))
     (declare (type (integer 0 256) i))
     (declare (dynamic-extent tentative region))
@@ -361,8 +361,8 @@
   (let* ((function (etypecase function
                      (symbol (fdefinition function))
                      (function function)))
-         (siz (3d-vectors::%vec2 (* 0.5 (vx3 (region-size region))) (* 0.5 (vy3 (region-size region)))))
-         (loc (3d-vectors::%vec2 (+ (vx3 region) (vx2 siz)) (+ (vy3 region) (vy2 siz)))))
+         (siz (vec (* 0.5 (vx3 (region-size region))) (* 0.5 (vy3 (region-size region)))))
+         (loc (vec (+ (vx3 region) (vx2 siz)) (+ (vy3 region) (vy2 siz)))))
     (declare (dynamic-extent loc siz))
     (labels ((recurse (node)
                (when (and node (node-contains-p* node loc siz))

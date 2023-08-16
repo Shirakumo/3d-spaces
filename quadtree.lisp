@@ -6,8 +6,8 @@
 
 (defstruct (quadtree-node
             (:include vec4) ;; x and y are top left corner, z and w are bottom right corner.
-            (:constructor %make-quadtree-node
-                (3d-vectors::%vx4 3d-vectors::%vy4 3d-vectors::%vz4 3d-vectors::%vw4
+            (:constructor %%make-quadtree-node
+                (org.shirakumo.fraf.math.vectors::varr4
                  depth min-size threshold parent top-left top-right bottom-left bottom-right))
             (:copier NIL)
             (:predicate NIL))
@@ -21,6 +21,14 @@
   (bottom-right NIL :type (or null quadtree-node))
   (active-p NIL :type boolean) ;; We disable nodes when they have no content for searches.
   (objects (make-object-vector) :type (vector T))) ;; Stays very short.
+
+(defun %make-quadtree-node (x y z w depth min-size threshold parent top-left top-right bottom-left bottom-right)
+  (let ((arr (make-array 4 :element-type 'single-float)))
+    (setf (aref arr 0) x)
+    (setf (aref arr 1) y)
+    (setf (aref arr 2) z)
+    (setf (aref arr 3) w)
+    (%%make-quadtree-node arr depth min-size threshold parent top-left top-right bottom-left bottom-right)))
 
 (defmethod print-object ((node quadtree-node) stream)
   (print-unreadable-object (node stream :type T)
@@ -668,7 +676,7 @@
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
-        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
+        (region (vec (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain T))
       (funcall function object))))
@@ -677,7 +685,7 @@
   (let ((function (etypecase function
                     (symbol (fdefinition function))
                     (function function)))
-        (region (3d-vectors::%vec4 (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
+        (region (vec (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain NIL))
       (funcall function object))))

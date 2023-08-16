@@ -16,8 +16,7 @@
                (:file "kd-tree")
                (:file "documentation"))
   :depends-on (:documentation-utils
-               :3d-vectors
-               :3d-matrices
+               :3d-math
                :trivial-extensible-sequences
                :for)
   :in-order-to ((asdf:test-op (asdf:test-op :3d-spaces-test))))
