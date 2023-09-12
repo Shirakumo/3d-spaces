@@ -94,7 +94,7 @@
 
 (defmethod ensure-region ((object region) &optional region)
   (cond (region
-         (v<- (region-size region) (region-size region))
+         (v<- (region-size region) (region-size object))
          (v<- region object))
         (T
          object)))
