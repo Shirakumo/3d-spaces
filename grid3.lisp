@@ -151,10 +151,10 @@
                  do (funcall function element))))
 
 (defmacro with-nesting (&body body)
-  (when (rest body)
-    (setf (cdr (last (first body)))
-          `((with-nesting ,@(rest body)))))
-  (first body))
+  (destructuring-bind (first . rest) body
+    (if rest
+        (append first `((with-nesting ,@rest)))
+        first)))
 
 (defmethod call-with-contained (function (grid grid) (region region))
   (declare (optimize speed (safety 1)))
