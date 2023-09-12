@@ -1,5 +1,14 @@
 (in-package #:org.shirakumo.fraf.trial.space.quadtree)
 
+(defmacro with-vec4 ((x y z w) vector &body body)
+  (let ((nvector (gensym "VECTOR")))
+    `(let* ((,nvector ,vector)
+            (,x (vx ,nvector))
+            (,y (vy ,nvector))
+            (,z (vz ,nvector))
+            (,w (vw ,nvector)))
+       ,@body)))
+
 (declaim (inline make-object-vector))
 (defun make-object-vector (&optional (initial-size 4))
   (make-array initial-size :adjustable T :fill-pointer 0))
