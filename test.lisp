@@ -1,5 +1,5 @@
 (defpackage #:org.shirakumo.fraf.trial.space.test
-  (:use #:cl #:parachute #:org.shirakumo.flare.vector)
+  (:use #:cl #:parachute #:org.shirakumo.fraf.math.vectors)
   (:local-nicknames
    (#:space #:org.shirakumo.fraf.trial.space)
    (#:bvh2 #:org.shirakumo.fraf.trial.space.bvh2)
