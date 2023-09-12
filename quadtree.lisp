@@ -116,6 +116,7 @@
 
 (defun ensure-child-nodes (node)
   (declare (optimize speed))
+  (check-type node quadtree-node)
   (with-vec (left top right bottom) node
     (let ((depth (1+ (quadtree-node-depth node)))
           (min-size (quadtree-node-min-size node))
@@ -293,6 +294,7 @@
 
 (defun node-extend (node direction)
   (declare (optimize speed))
+  (check-type node quadtree-node)
   (with-vec (node-x node-y node-z node-w) node
     (let ((min-size (quadtree-node-min-size node))
           (threshold (quadtree-node-threshold node))
