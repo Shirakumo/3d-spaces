@@ -32,7 +32,7 @@
 
 (defmethod print-object ((node quadtree-node) stream)
   (print-unreadable-object (node stream :type T)
-    (with-vec4 (x y z w) node
+    (with-vec (x y z w) node
       (format stream "~a ~a ~a ~a~@[: ~{~a~^, ~}~]"
               x y z w (loop for object across (quadtree-node-objects node)
                             collecting object)))))
@@ -116,7 +116,7 @@
 
 (defun ensure-child-nodes (node)
   (declare (optimize speed))
-  (with-vec4 (left top right bottom) node
+  (with-vec (left top right bottom) node
     (let ((depth (1+ (quadtree-node-depth node)))
           (min-size (quadtree-node-min-size node))
           (threshold (quadtree-node-threshold node))
@@ -293,7 +293,7 @@
 
 (defun node-extend (node direction)
   (declare (optimize speed))
-  (with-vec4 (node-x node-y node-z node-w) node
+  (with-vec (node-x node-y node-z node-w) node
     (let ((min-size (quadtree-node-min-size node))
           (threshold (quadtree-node-threshold node))
           (width (- node-z node-x))
