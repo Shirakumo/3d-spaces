@@ -119,7 +119,7 @@
         (region (gensym "REGION")))
     `(let* ((,size (vec 0.0 0.0 0.0))
             (,array (make-array 3 :element-type 'single-float :initial-element 0f0))
-            (,region (%region array ,size)))
+            (,region (%region ,array ,size)))
        (declare (dynamic-extent ,array ,size ,region))
        (let ((,var ,region))
          ,@body))))
