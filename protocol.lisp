@@ -76,7 +76,7 @@
 (defmethod make-load-form ((region region) &optional environment)
   (declare (ignore environment))
   (let ((size (region-size region)))
-    `(%region ,(varr region) ,(vx size) ,(vy size) ,(vz size))))
+    `(%region ,(varr region) (vec3 ,(vx size) ,(vy size) ,(vz size)))))
 
 (declaim (inline region))
 (defun region (x y z w h d)
