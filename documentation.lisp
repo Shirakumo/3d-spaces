@@ -107,7 +107,7 @@ undefined consequences.
 See CONTAINER (type)")
 
   (function call-with-all
-    "Calls FUNCTION with every object contained in the container.
+    "Calls FUNCTION with every object contained in CONTAINER.
 
 See DO-ALL
 See CONTAINER (type)")
@@ -116,9 +116,10 @@ See CONTAINER (type)")
     "Calls FUNCTION with every object contained in REGION.
 
 The region is coerced to a region via ENSURE-REGION.
-The function *may* be called with objects that overlap the specified
-region, but *will not* be called with objects that lie entirely
-outside the region.
+The function *will* be called with objects that lie entirely inside the
+specified region. The function *may* be called with objects that
+overlap but do not lie entirely inside the region. The function *will
+not* be called with objects that lie entirely outside the region.
 
 See DO-CONTAINED
 See ENSURE-REGION
@@ -129,9 +130,10 @@ See CONTAINER (type)")
     "Calls FUNCTION with every object contained in REGION.
 
 The region is coerced to a region via ENSURE-REGION.
-The function *will* be called with all objects that overlap the
-specified region, and *will not* be called with objects that lie
-entirely outside the region.
+The function *will* be called with objects that overlap the specified
+region (including objects that lie entirely inside the region). The
+function *will not* be called with objects that lie entirely outside
+the region.
 
 See DO-OVERLAPPING
 See ENSURE-REGION
@@ -145,7 +147,7 @@ It is up to you to implement the fine grained intersection test
 between the ray and the object, this will only approximate the lookup
 based on the container's internal acceleration structures.
 
-Depending on the container, the ray origin and direction should be
+Depending on the container, RAY-ORIGIN and RAY-DIRECTION should be
 either VEC3s or VEC2s.
 
 See DO-INTERSECTING
