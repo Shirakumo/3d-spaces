@@ -35,17 +35,29 @@
     (enter old grid)
     grid))
 
+;;; The volume of a grid cell at index (i, j, k) is
+;;;
+;;;   [x+c*i,x+c*(i+1)]x[y+c*j,y+c*(j+1)]x[z+c*k,z+c*(k+1)]
+;;;
+;;; where (x, y, z) = l-s/2 and l is the location vector of the grid
+;;; and s is the full (not half) size vector of the volume of the grid
+;;; and c is the grid cell size. That is, the cells (0, 0, 0) and (w,
+;;; h, d) are at the corners of the volume grid and the cell
+;;; (floor(w/2), floor(h/2), floor(d/2)) is at the center of the
+;;; volume.
 (defmacro %with-grid-coordinates ((x y z) (grid xv yv zv) &body body)
   `(let* ((gl (location ,grid))
           (c (grid-cell ,grid))
-          (ch (* c 0.5))
           (w (grid-w ,grid))
           (h (grid-h ,grid))
           (d (grid-d ,grid))
-          (,x (clamp 0 (the (signed-byte 32) (floor (+ (- ,xv (vx3 gl)) (* ch w)) w)) (1- w)))
-          (,y (clamp 0 (the (signed-byte 32) (floor (+ (- ,yv (vy3 gl)) (* ch h)) h)) (1- h)))
-          (,z (clamp 0 (the (signed-byte 32) (floor (+ (- ,zv (vz3 gl)) (* ch d)) d)) (1- d))))
-     (declare (type (unsigned-byte 32) ,x ,y ,z w h d))
+          (,x (clamp 0 (the (signed-byte 32) (floor (+ (/ (- ,xv (vx3 gl)) c) (* .5 w)))) (1- w)))
+          (,y (clamp 0 (the (signed-byte 32) (floor (+ (/ (- ,yv (vy3 gl)) c) (* .5 h)))) (1- h)))
+          (,z (clamp 0 (the (signed-byte 32) (floor (+ (/ (- ,zv (vz3 gl)) c) (* .5 d)))) (1- d))))
+     (declare (type vec3 gl)
+              (type (unsigned-byte 32) w h d)
+              (type (unsigned-byte 32) ,x ,y ,z)
+              (ignorable w h d))
      ,@body))
 
 (defun grid-insert (object grid)
@@ -61,6 +73,7 @@
   ;; properly sizing it for their use-case.
   (let* ((ol (location object))
          (os (bsize object)))
+    (declare (type vec3 ol os))
     (%with-grid-coordinates (x y z) (grid (- (vx3 ol) (vx3 os)) (- (vy3 ol) (vy3 os)) (- (vz3 ol) (vz3 os)))
       (let* ((y (the (unsigned-byte 32) (* y w)))
              (z (the (unsigned-byte 32) (* z w h)))
