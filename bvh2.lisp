@@ -328,9 +328,7 @@
 
 (defmethod call-with-contained (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
+  (let ((function (ensure-function function))
         (tentative (make-array 256))
         (region (vec (vx3 region) (vy3 region)
                      (+ (vx3 region) (vx3 (region-size region)))
@@ -358,9 +356,7 @@
 
 (defmethod call-with-overlapping (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
-  (let* ((function (etypecase function
-                     (symbol (fdefinition function))
-                     (function function)))
+  (let* ((function (ensure-function function))
          (siz (vec (* 0.5 (vx3 (region-size region))) (* 0.5 (vy3 (region-size region)))))
          (loc (vec (+ (vx3 region) (vx2 siz)) (+ (vy3 region) (vy2 siz)))))
     (declare (dynamic-extent loc siz))
@@ -550,7 +546,7 @@
                             (setf out (node-sibling pivot))
                             (setf pivot (bvh-node-p out))
                             (setf down T))
-                           
+
                          ;; we haven't reached the pivot. traverse sibling down, or parent up
                          ((eq out (bvh-node-l (bvh-node-p out)))
                           (setf down T)
