@@ -1,8 +1,5 @@
 (in-package #:org.shirakumo.fraf.trial.space.grid3)
 
-(do-external-symbols (s '#:org.shirakumo.fraf.trial.space)
-  (export s *package*))
-
 (declaim (inline clamp))
 (defun clamp (min x max)
   (max min (min x max)))
