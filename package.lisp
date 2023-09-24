@@ -43,6 +43,8 @@
                                  collect s)))))
   (defpackage* #:org.shirakumo.fraf.trial.space.bvh2
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
+    (:import-from #:org.shirakumo.fraf.trial.space
+     #:ensure-function)
     (:export
      #:bvh
      #:make-bvh
@@ -53,6 +55,9 @@
 
   (defpackage* #:org.shirakumo.fraf.trial.space.grid3
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
+    (:import-from #:org.shirakumo.fraf.trial.space
+     #:clamp
+     #:ensure-function)
     (:export
      #:grid
      #:make-grid
@@ -64,6 +69,8 @@
 
   (defpackage* #:org.shirakumo.fraf.trial.space.quadtree
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
+    (:import-from #:org.shirakumo.fraf.trial.space
+     #:ensure-function)
     (:export
      #:quadtree
      #:make-quadtree
@@ -81,6 +88,8 @@
 
   (defpackage* #:org.shirakumo.fraf.trial.space.kd-tree
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
+    (:import-from #:org.shirakumo.fraf.trial.space
+     #:ensure-function)
     (:export
      #:kd-tree
      #:make-kd-tree

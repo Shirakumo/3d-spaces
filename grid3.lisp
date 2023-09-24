@@ -1,9 +1,5 @@
 (in-package #:org.shirakumo.fraf.trial.space.grid3)
 
-(declaim (inline clamp))
-(defun clamp (min x max)
-  (max min (min x max)))
-
 (defstruct (grid
             (:include container)
             (:constructor %make-grid (location cell))
@@ -59,7 +55,7 @@
   ;; This makes it a lot cheaper to keep track of where the object is, at the cost of only
   ;; allowing objects that are up to the size of a single grid cell. Users must be aware of
   ;; this.
-  ;; 
+  ;;
   ;; Objects that are outside the grid will be clamped inside it. No automatic resizing of
   ;; the grid occurs, so the grid may become denormalised if the user does not take care of
   ;; properly sizing it for their use-case.
@@ -155,9 +151,7 @@
 
 (defmethod call-with-contained (function (grid grid) (region region))
   (declare (optimize speed (safety 1)))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
+  (let ((function (ensure-function function))
         (size (region-size region))
         (data (grid-data grid)))
     (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
@@ -177,9 +171,7 @@
 
 (defmethod call-with-overlapping (function (grid grid) (region region))
   (declare (optimize speed (safety 1)))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
+  (let ((function (ensure-function function))
         (size (region-size region))
         (data (grid-data grid)))
     (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
@@ -206,9 +198,7 @@
   (declare (optimize speed (safety 1)))
   (check-type ray-origin vec3)
   (check-type ray-direction vec3)
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
+  (let ((function (ensure-function function))
         (data (grid-data grid)))
     (%with-grid-coordinates (x0 y0 z0) (grid (vx3 ray-origin) (vy3 ray-origin) (vz3 ray-origin))
       (setf x0 (max 0 (1- x0)))

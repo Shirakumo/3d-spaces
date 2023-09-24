@@ -300,9 +300,7 @@
 (defmethod call-with-all (function (tree kd-tree))
   (declare (optimize speed (safety 1)))
   (let ((stack (make-array 0 :adjustable T :fill-pointer T))
-        (function (etypecase function
-                    (function function)
-                    (symbol (fdefinition function)))))
+        (function (ensure-function function)))
     (declare (dynamic-extent stack))
     (vector-push-extend (kd-tree-root tree) stack)
     (loop for node = (vector-pop stack)
@@ -319,9 +317,7 @@
   (with-array (c region)
     (with-array (b (region-size region))
       (let ((v (make-array 3 :element-type 'single-float))
-            (function (etypecase function
-                        (function function)
-                        (symbol (fdefinition function)))))
+            (function (ensure-function function)))
         (declare (dynamic-extent v))
         (setf (aref v 0) (incf (aref c 0) (setf (aref b 0) (* 0.5 (aref b 0)))))
         (setf (aref v 1) (incf (aref c 1) (setf (aref b 1) (* 0.5 (aref b 1)))))
@@ -336,9 +332,7 @@
   (declare (optimize speed (safety 1)))
   (with-array (c sphere)
     (let ((v (make-array 3 :element-type 'single-float))
-          (function (etypecase function
-                      (function function)
-                      (symbol (fdefinition function)))))
+          (function (ensure-function function)))
       (declare (dynamic-extent v))
       (setf (aref v 0) (aref c 0))
       (setf (aref v 1) (aref c 1))
@@ -353,9 +347,7 @@
   (declare (optimize speed (safety 1)))
   (with-array (o ray-origin)
     (with-array (d ray-direction)
-      (let ((function (etypecase function
-                        (function function)
-                        (symbol (fdefinition function)))))
+      (let ((function (ensure-function function)))
         (labels ((visit (node tmax)
                    (declare (type node node))
                    (declare (type single-float tmax))
@@ -387,9 +379,7 @@
 
 (defun kd-tree-call-with-nearest (function location tree)
   (declare (optimize speed (safety 1)))
-  (let ((function (etypecase function
-                    (function function)
-                    (symbol (fdefinition function)))))
+  (let ((function (ensure-function function)))
     (with-array (v location)
       (with-array (c location)
         (let ((radius most-positive-single-float))
@@ -436,10 +426,9 @@
   (let* ((max-i (1- k))
          (candidates (make-array k :element-type T :initial-element NIL))
          (distances (make-array k :element-type 'single-float :initial-element most-positive-single-float))
-         (test (etypecase test
-                 (null (constantly T))
-                 (function test)
-                 (symbol (fdefinition test))))
+         (test (if (null test)
+                   (constantly T)
+                   (ensure-function test)))
          (found 0))
     (declare (type (unsigned-byte 32) max-i found))
     (flet ((visit (candidate distance)

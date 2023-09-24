@@ -10,6 +10,7 @@
   :serial T
   :components ((:file "package")
                (:file "protocol")
+               (:file "toolkit")
                (:file "bvh2")
                (:file "quadtree")
                (:file "grid3")

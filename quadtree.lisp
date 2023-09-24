@@ -668,25 +668,19 @@
        (lambda ())))))
 
 (defmethod call-with-all (function (tree quadtree))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function))))
+  (let ((function (ensure-function function)))
     (for:for ((object over tree))
       (funcall function object))))
 
 (defmethod call-with-contained (function (tree quadtree) (region region))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
+  (let ((function (ensure-function function))
         (region (vec (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain T))
       (funcall function object))))
 
 (defmethod call-with-overlapping (function (tree quadtree) (region region))
-  (let ((function (etypecase function
-                    (symbol (fdefinition function))
-                    (function function)))
+  (let ((function (ensure-function function))
         (region (vec (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain NIL))
