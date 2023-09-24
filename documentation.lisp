@@ -138,7 +138,7 @@ See ENSURE-REGION
 See REGION (type)
 See CONTAINER (type)")
 
-  (function call-with-intersection
+  (function call-with-intersecting
     "Calls FUNCTION with every object that *may* intersect the ray.
 
 It is up to you to implement the fine grained intersection test
@@ -255,7 +255,7 @@ Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-OVERLAPPING")
 
-  (function do-overlapping
+  (function do-intersecting
     "Convenience macro to iterate over objects intersecting the ray.
 
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
