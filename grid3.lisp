@@ -139,9 +139,12 @@
     (vec (* c (grid-w grid)) (* c (grid-h grid)) (* c (grid-d grid)))))
 
 (defmethod call-with-all (function (grid grid))
-  (loop for cell across (grid-data grid)
-        do (loop for element in cell
-                 do (funcall function element))))
+  (declare (optimize speed))
+  (let ((function (ensure-function function)))
+    (maphash (lambda (key value)
+               (declare (ignore value))
+               (funcall function key))
+             (grid-table grid))))
 
 (defmacro with-nesting (&body body)
   (destructuring-bind (first . rest) body
