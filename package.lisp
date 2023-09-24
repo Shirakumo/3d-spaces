@@ -31,7 +31,9 @@
    #:do-intersecting
    #:find-region
    #:region-overlaps-p
-   #:region-contains-p))
+   #:region-contains-p
+   #:serialize
+   #:deserialize))
 
 (macrolet ((defpackage* (name &rest args)
              `(defpackage ,name
