@@ -9,7 +9,7 @@ value for their own object representations.
 
 See BSIZE
 See RADIUS")
-  
+
   (function bsize
     "Returns a vec2 or vec3 representing the  half-size of the object's axis-aligned bounding box.
 
@@ -18,7 +18,7 @@ value for their own object representations.
 
 See LOCATION
 See RADIUS")
-  
+
   (function radius
     "Returns a single-float representing the radius of the object's bounding sphere.
 
@@ -29,7 +29,7 @@ If no method is provided it is computed automatically from the BSIZE.
 
 See LOCATION
 See BSIZE")
-  
+
   (function ensure-region
     "Coerces the object to a REGION instance.
 
@@ -37,7 +37,7 @@ If the optional region is passed, the data in that region is updated
 instead of creating a new region instance.
 
 See REGION (type)")
-  
+
   (function check
     "Checks the container for validity.
 
@@ -45,17 +45,17 @@ Signals an error if there are problems with the container's internal
 invariants.
 
 See CONTAINER (type)")
-  
+
   (function clear
     "Clears the container and removes all objects from it.
 
 See CONTAINER (type)")
-  
+
   (function reoptimize
     "Reoptimizes the container to fit its objects better.
 
 Each container type may accept specific arguments to control the
-opitimization.
+optimization.
 
 See CONTAINER (type)")
 
@@ -65,7 +65,7 @@ See CONTAINER (type)")
 Note that this is usually not a constant-time operation.
 
 See CONTAINER (type)")
-  
+
   (function enter
     "Adds objects to the container.
 
@@ -78,7 +78,7 @@ Entering the same object twice is safe.
 Every object must implement a method for at least LOCATION and BSIZE.
 
 See CONTAINER (type)")
-  
+
   (function leave
     "Removes an object from the container.
 
@@ -89,7 +89,7 @@ individually.
 Removing the same object twice is safe.
 
 See CONTAINER (type)")
-  
+
   (function update
     "Updates the objects in the container.
 
@@ -105,13 +105,13 @@ Calling UPDATE on an object that is not currently in the container has
 undefined consequences.
 
 See CONTAINER (type)")
-  
+
   (function call-with-all
     "Calls FUNCTION with every object contained in the container.
 
 See DO-ALL
 See CONTAINER (type)")
-  
+
   (function call-with-contained
     "Calls FUNCTION with every object contained in REGION.
 
@@ -124,7 +124,7 @@ See DO-CONTAINED
 See ENSURE-REGION
 See REGION (type)
 See CONTAINER (type)")
-  
+
   (function call-with-overlapping
     "Calls FUNCTION with every object contained in REGION.
 
@@ -184,7 +184,7 @@ objects for the same (EQUAL) IDS.
 
 See SERIALIZE
 See CONTAINER (type)")
-  
+
   (type container
     "Supertype for all containers.
 
@@ -203,12 +203,12 @@ See UPDATE
 See CALL-WITH-ALL
 See CALL-WITH-CONTAINED
 See CALL-WITH-OVERLAPPING")
-  
+
   (function container-p
     "Returns true if the given object is a container instance.
 
 See CONTAINER (type)")
-  
+
   (type region
     "Encompasses an axis-aligned region.
 
@@ -225,7 +225,7 @@ See REGION-SIZE
 See FIND-REGION
 See REGION-OVERLAPS-P
 See REGION-CONTAINS-P")
-  
+
   (function region-size
     "Accesses the region's size.
 
@@ -233,21 +233,21 @@ NOTE: unlike BSIZE, this is the *full size* and not a half-size.
 
 See 3D-VECTORS:VEC3 (type)
 See REGION (type)")
-  
+
   (function do-all
     "Convenience macro to iterate over all objects in the container.
 
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-ALL")
-  
+
   (function do-contained
     "Convenience macro to iterate over objects contained in the region.
 
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-CONTAINED")
-  
+
   (function do-overlapping
     "Convenience macro to iterate over objects overlapping the region.
 
@@ -261,21 +261,21 @@ See CALL-WITH-OVERLAPPING")
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-INTERSECTING")
-  
+
   (function find-region
     "Returns a region that encompasses all objects passed as tightly as possible.
 
 Every object must implement a method for at least LOCATION and BSIZE.
 
 See REGION (type)")
-  
+
   (function region-overlaps-p
     "Returns true if the region overlaps with the object's axis aligned bounding box.
 
 The object must implement a method for at least LOCATION and BSIZE.
 
 See REGION (type)")
-  
+
   (function region-contains-p
     "Returns true if the region entirely contains the object's axis aligned bounding box.
 
@@ -308,30 +308,30 @@ See BVH-INSERT
 See BVH-REMOVE
 See BVH-UPDATE
 See BVH-LINES")
-  
+
   (function make-bvh
     "Creates a fresh BVH2.
 
 See BVH (type)")
-  
+
   (function bvh-insert
     "Fast track for ENTER.
 
 See BVH (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
-  
+
   (function bvh-remove
     "Fast track for LEAVE.
 
 See BVH (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
-  
+
   (function bvh-update
     "Fast track for UPDATE.
 
 See BVH (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE")
-  
+
   (function bvh-lines
     "Debug function.
 
@@ -360,7 +360,7 @@ parent node.
 The node automatically splits into sub-sections when an item count
 threshold is met upon insertion and checks the need for rebalancing at
 removal. Calling REOPTIMIZE manually will shuffle the tree around for
-better search travelsal, but it is not recommended as the searches are
+better search traversal, but it is not recommended as the searches are
 should remain fast enough. Calling UPDATE will also rebalance the tree
 automatically in previous and current space relative to the passed
 object.
@@ -382,7 +382,7 @@ See QUADTREE-FIND-CONTAINED
 See QUADTREE-FIND-CONTAINED-IN
 See QUADTREE-FIND-FOR
 See QUADTREE-LINES")
-  
+
   (function make-quadtree
     "Creates an empty QUADTREE for [0,0] to [100,100] coordinate space
 with 1 as the minimum length of an edge and 1 as the threshold number
@@ -390,7 +390,7 @@ of items before the node is split.
 
 See QUADTREE (type)
 See MAKE-QUADTREE-AT")
-  
+
   (function make-quadtree-at
     "Creates an empty QUADTREE for the defined section of space with
 wanted minimum node edge size (defaults to 1) and the item count
@@ -398,7 +398,7 @@ threshold before a node splits (defaults to 1).
 
 See QUADTREE (type)
 See MAKE-QUADTREE")
-  
+
   (function quadtree-insert
     "Fast track for ENTER. If the passed object already exists in the
 tree its holding node is updated.
@@ -406,14 +406,14 @@ tree its holding node is updated.
 See QUADTREE (type)
 See QUADTREE-UPDATE
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
-  
+
   (function quadtree-remove
     "Fast track for LEAVE. The holder node's state is updated if
 necessary.
 
 See QUADTREE (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
-  
+
   (function quadtree-update
     "Fast track for UPDATE. Checks if the passed object's holding node
 in the tree should be changed and updates it accordingly.
@@ -422,13 +422,13 @@ See QUADTREE (type)
 See QUADTREE-INSERT
 See QUADTREE-REMOVE
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:UPDATE")
-  
+
   (function quadtree-find-all
     "Finds every object in the tree and pushes them into the passed
 vector which is then returned.
 
 See QUADTREE (type)")
-  
+
   (function quadtree-find-overlaps
     "Finds every object in the tree that overlaps with the passed
 region and pushes them into the vector which is then returned.
@@ -440,7 +440,7 @@ region.
 See QUADTREE (type)
 See QUADTREE-FIND-OVERLAPS-IN
 See QUADTREE-FIND-CONTAINED")
-  
+
   (function quadtree-find-overlaps-in
     "Finds every object in the tree that overlaps with the passed
 region and pushes them into the vector which is then returned.
@@ -452,7 +452,7 @@ and height respectively of the region.
 See QUADTREE (type)
 See QUADTREE-FIND-OVERLAPS
 See QUADTREE-FIND-CONTAINED-IN")
-  
+
   (function quadtree-find-contained
     "Finds every object in the tree that is completely contained by
 the passed region and pushes them into the vector which is then
@@ -465,7 +465,7 @@ region.
 See QUADTREE (type)
 See QUADTREE-FIND-CONTAINED-IN
 See QUADTREE-FIND-OVERLAPS")
-  
+
   (function quadtree-find-contained-in
     "Finds every object in the tree that is completely contained by
 the passed region and pushes them into the vector which is then
@@ -478,7 +478,7 @@ and height respectively of the region.
 See QUADTREE (type)
 See QUADTREE-FIND-CONTAINED
 See QUADTREE-FIND-OVERLAPS-IN")
-  
+
   (function quadtree-find-for
     "Finds every object in the tree that overlaps with the passed
 object that holds location and size information to it.
@@ -487,7 +487,7 @@ The object must implement a method for at least LOCATION and BSIZE.
 
 See QUADTREE (type)
 See QUADTREE-FIND-OVERLAPS-IN")
-  
+
   (function quadtree-lines
     "Debug function.
 
@@ -538,7 +538,7 @@ the nearest cell within the grid. Beware of degenerating performance
 if your objects do not fit within the grid's size.
 
 See QUADTREE (type)")
-  
+
   (function make-grid
     "Creates a new grid.
 
@@ -546,31 +546,31 @@ If no LOCATION is passed, it is centered at the origin. If no BSIZE is
 passed, it is sized to a half-size of 100 in every direction.
 
 See GRID (type)")
-  
+
   (function grid-resize
     "Resizes the grid to the specified half-size and cell size.
 
 See GRID (type)")
-  
+
   (function grid-move
     "Moves the grid's center to the specified location.
 
 Note that this will not change the grid's half-size or cell size.
 
 See GRID (type)")
-  
+
   (function grid-insert
     "Fast track for ENTER.
 
 See GRID (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
-  
+
   (function grid-remove
     "Fast track for LEAVE.
 
 See GRID (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
-  
+
   (function grid-update
     "Fast track for UPDATE.
 
@@ -595,7 +595,7 @@ See KD-TREE-NEAREST
 See KD-TREE-K-NEAREST
 See KD-TREE-CALL-WITH-NEAREST
 See QUADTREE (type)")
-  
+
   (function make-kd-tree
     "Creates a new grid.
 
@@ -603,19 +603,19 @@ If no LOCATION is passed, it is centered at the origin. If no BSIZE is
 passed, it is sized to a half-size of 100 in every direction.
 
 See KD-TREE (type)")
-  
+
   (function kd-tree-insert
     "Fast track for ENTER.
 
 See KD-TREE (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:ENTER")
-  
+
   (function kd-tree-remove
     "Fast track for LEAVE.
 
 See KD-TREE (type)
 See ORG.SHIRAKUMO.FRAF.TRIAL.SPACE:LEAVE")
-  
+
   (function kd-tree-nearest
     "Find the nearest object to a location
 
