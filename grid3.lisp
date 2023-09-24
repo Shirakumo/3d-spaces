@@ -45,20 +45,24 @@
 ;;; h, d) are at the corners of the volume grid and the cell
 ;;; (floor(w/2), floor(h/2), floor(d/2)) is at the center of the
 ;;; volume.
-(defmacro %with-grid-coordinates ((x y z) (grid xv yv zv) &body body)
-  `(let* ((gl (location ,grid))
-          (c (grid-cell ,grid))
-          (w (grid-w ,grid))
-          (h (grid-h ,grid))
-          (d (grid-d ,grid))
-          (,x (clamp 0 (the (signed-byte 32) (floor (+ (/ (- ,xv (vx3 gl)) c) (* .5 w)))) (1- w)))
-          (,y (clamp 0 (the (signed-byte 32) (floor (+ (/ (- ,yv (vy3 gl)) c) (* .5 h)))) (1- h)))
-          (,z (clamp 0 (the (signed-byte 32) (floor (+ (/ (- ,zv (vz3 gl)) c) (* .5 d)))) (1- d))))
-     (declare (type vec3 gl)
-              (type (unsigned-byte 32) w h d)
-              (type (unsigned-byte 32) ,x ,y ,z)
-              (ignorable w h d))
-     ,@body))
+(defmacro %with-grid-coordinates ((x y z &key (clamp t)) (grid xv yv zv) &body body)
+  (flet ((clamp (expression upper-bound)
+           (if clamp
+               `(clamp 0 (the (signed-byte 32) ,expression) (1- ,upper-bound))
+               `(the (signed-byte 32) ,expression))))
+    `(let* ((gl (location ,grid))
+            (c (grid-cell ,grid))
+            (w (grid-w ,grid))
+            (h (grid-h ,grid))
+            (d (grid-d ,grid))
+            (,x ,(clamp `(floor (+ (/ (- ,xv (vx3 gl)) c) (* .5 w))) 'w))
+            (,y ,(clamp `(floor (+ (/ (- ,yv (vy3 gl)) c) (* .5 h))) 'h))
+            (,z ,(clamp `(floor (+ (/ (- ,zv (vz3 gl)) c) (* .5 d))) 'd)))
+       (declare (type vec3 gl)
+                (type (unsigned-byte 32) w h d)
+                (type ,(if clamp '(unsigned-byte 32) '(signed-byte 32)) ,x ,y ,z)
+                (ignorable w h d))
+       ,@body)))
 
 (defun grid-insert (object grid)
   (declare (optimize speed (safety 1)))
@@ -189,26 +193,31 @@
   (declare (optimize speed (safety 1)))
   (let ((function (ensure-function function))
         (size (region-size region))
+        (cell-size (grid-cell grid))
         (data (grid-data grid)))
-    (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
-      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 size)) (+ (vy3 region) (vy3 size)) (+ (vz3 region) (vz3 size)))
-        ;; We expand the search cells by one to ensure we grab objects that overlap
-        ;; into the space from outside, since we store bottom left corners only.
-        (setf x- (max 0 (1- x-)))
-        (setf y- (max 0 (1- y-)))
-        (setf z- (max 0 (1- z-)))
-        (with-nesting
-          (loop for z from z- below z+
-                for zi = (the (unsigned-byte 32) (* z w h))
-                do)
-          (loop for y from y- below y+
-                for yi = (the (unsigned-byte 32) (* y w))
-                do)
-          (loop for x from x- below x+
-                for i = (+ x yi zi)
-                do)
-          (loop for object in (aref data i)
-                do (funcall function object)))))))
+    ;; We expand the search cells by one to ensure we grab objects
+    ;; that overlap into the space from outside, since we store bottom
+    ;; left corners of objects only.
+    (%with-grid-coordinates (x- y- z- :clamp nil) (grid (- (vx3 region) cell-size)
+                                                        (- (vy3 region) cell-size)
+                                                        (- (vz3 region) cell-size))
+      (%with-grid-coordinates (x+ y+ z+ :clamp nil) (grid (+ (vx3 region) (vx3 size) cell-size)
+                                                          (+ (vy3 region) (vy3 size) cell-size)
+                                                          (+ (vz3 region) (vz3 size) cell-size))
+        (when (and (< x- w) (< y- h) (< z- d)
+                   (<= 0 x+) (<= 0 y+) (<= 0 z+))
+         (with-nesting
+           (loop for z from (max z- 0) below (min z+ d)
+                 for zi = (the (unsigned-byte 32) (* z w h))
+                 do)
+           (loop for y from (max y- 0) below (min y+ h)
+                 for yi = (the (unsigned-byte 32) (* y w))
+                 do)
+           (loop for x from (max x- 0) below (min x+ w)
+                 for i = (+ x yi zi)
+                 do)
+           (loop for object in (aref data i)
+                 do (funcall function object))))))))
 
 (defmethod call-with-intersecting (function (grid grid) ray-origin ray-direction)
   (declare (optimize speed (safety 1)))
