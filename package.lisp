@@ -2,7 +2,7 @@
   (:use #:cl #:org.shirakumo.fraf.math)
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))
-  (:intern #:describe-tree)
+  (:intern #:describe-tree #:ensure-function #:clamp)
   (:export
    #:location
    #:bsize
