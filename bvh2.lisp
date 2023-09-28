@@ -479,7 +479,7 @@
            (pivot-box (vec4 0.0 0.0 0.0 0.0))
            (pivot-box-initialized NIL)
            (decrease-bound (- (node-cost parent) (node-cost node)))
-           (decrease 0.0)
+           (decrease 0.0f0)
            (decrease-best decrease)
            (out (node-sibling node))
            (out-best out)

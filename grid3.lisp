@@ -9,7 +9,7 @@
   (w 0 :type (unsigned-byte 32))
   (h 0 :type (unsigned-byte 32))
   (d 0 :type (unsigned-byte 32))
-  (cell 0.0 :type single-float)
+  (cell 0.0f0 :type single-float)
   (data #() :type simple-vector)
   (table (make-hash-table :test 'eq) :type hash-table))
 
@@ -115,17 +115,17 @@
     (unless (and location bsize)
       (let ((region (find-region old)))
         (unless bsize
-          (setf bsize (v* (region-size region) 0.5)))
+          (setf bsize (v* (region-size region) 0.5f0)))
         (unless location
           (setf location (v+ region bsize)))
         (when (and (not cell-size) (< 0 (length old)))
-          (let ((biggest 0.0))
+          (let ((biggest 0.0f0))
             (loop for object across old
                   for bsize = (bsize object)
                   do (etypecase bsize
                        (vec3 (setf biggest (max biggest (vx3 bsize) (vy3 bsize) (vz3 bsize))))
                        (vec2 (setf biggest (max biggest (vx2 bsize) (vy2 bsize))))))
-            (setf cell-size (* 2.0 biggest))))))
+            (setf cell-size (* 2.0f0 biggest))))))
     (when cell-size (setf (grid-cell grid) cell-size))
     (let* ((c (grid-cell grid))
            (w (ceiling (* 2.0 (vx bsize)) c))
@@ -233,7 +233,7 @@
              (dy (abs (vy3 ray-direction))) (sy (if (<= 0 (vy3 ray-direction)) +1 -1))
              (dz (abs (vz3 ray-direction))) (sz (if (<= 0 (vz3 ray-direction)) +1 -1))
              (dm (max dx dy dz))
-             (x1 (* 0.5 dm)) (y1 x1) (z1 x1)
+             (x1 (* 0.5f0 dm)) (y1 x1) (z1 x1)
              (zstride (* w h))
              (i (+ x0 (* y0 w) (the (unsigned-byte 32) (* z0 zstride))))
              ;; We cache the last 16 indices here to avoid iterating over

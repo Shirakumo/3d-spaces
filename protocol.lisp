@@ -90,7 +90,7 @@
   (nv+ (bsize region) region))
 
 (defmethod bsize ((region region))
-  (v* (region-size region) 0.5))
+  (v* (region-size region) 0.5f0))
 
 (defmethod ensure-region ((object region) &optional region)
   (cond (region
@@ -101,7 +101,7 @@
 
 (defmethod ensure-region ((object sphere) &optional region)
   (let* ((r (sphere-radius object))
-         (2r (* 2.0 r)))
+         (2r (* 2.0f0 r)))
     (cond (region
            (v<- region object)
            (nv- region r)
@@ -140,11 +140,11 @@
                          (vz3 region) 0.0)))
            (let ((rsize (region-size region)))
              (etypecase bsize
-               (vec3 (setf (vx3 rsize) (* 2.0 (vx3 bsize))
-                           (vy3 rsize) (* 2.0 (vy3 bsize))
-                           (vz3 rsize) (* 2.0 (vz3 bsize))))
-               (vec2 (setf (vx3 rsize) (* 2.0 (vx2 bsize))
-                           (vy3 rsize) (* 2.0 (vy2 bsize))
+               (vec3 (setf (vx3 rsize) (* 2.0f0 (vx3 bsize))
+                           (vy3 rsize) (* 2.0f0 (vy3 bsize))
+                           (vz3 rsize) (* 2.0f0 (vz3 bsize))))
+               (vec2 (setf (vx3 rsize) (* 2.0f0 (vx2 bsize))
+                           (vy3 rsize) (* 2.0f0 (vy2 bsize))
                            (vz3 rsize) 0.0))))
            region)
           (T
@@ -155,10 +155,10 @@
       (let ((rsize (region-size region)))
         (setf (vx3 region) (vx2 object)
               (vy3 region) (vy2 object)
-              (vz3 region) 0.0
-              (vx3 rsize) 0.0
-              (vy3 rsize) 0.0
-              (vz3 rsize) 0.0)
+              (vz3 region) 0.0f0
+              (vx3 rsize) 0.0f0
+              (vy3 rsize) 0.0f0
+              (vz3 rsize) 0.0f0)
         region)
       (ensure-region object (region 0.0 0.0 0.0 0.0 0.0 0.0))))
 
@@ -168,9 +168,9 @@
         (setf (vx3 region) (vx3 object)
               (vy3 region) (vy3 object)
               (vz3 region) (vz3 object)
-              (vx3 rsize) 0.0
-              (vy3 rsize) 0.0
-              (vz3 rsize) 0.0)
+              (vx3 rsize) 0.0f0
+              (vy3 rsize) 0.0f0
+              (vz3 rsize) 0.0f0)
         region)
       (ensure-region object (region 0.0 0.0 0.0 0.0 0.0 0.0))))
 
@@ -270,19 +270,19 @@
         (s (region-size region)))
     (etypecase ol
       (vec3
-       (let ((rl (vec3 (+ (vx3 region) (* 0.5 (vx3 s)))
-                       (+ (vy3 region) (* 0.5 (vy3 s)))
-                       (+ (vz3 region) (* 0.5 (vz3 s))))))
+       (let ((rl (vec3 (+ (vx3 region) (* 0.5f0 (vx3 s)))
+                       (+ (vy3 region) (* 0.5f0 (vy3 s)))
+                       (+ (vz3 region) (* 0.5f0 (vz3 s))))))
          (declare (dynamic-extent rl))
-         (and (<= (abs (- (vx3 ol) (vx3 rl))) (+ (* 0.5 (vx3 s)) (vx3 ob)))
-              (<= (abs (- (vy3 ol) (vy3 rl))) (+ (* 0.5 (vy3 s)) (vy3 ob)))
-              (<= (abs (- (vz3 ol) (vz3 rl))) (+ (* 0.5 (vz3 s)) (vz3 ob))))))
+         (and (<= (abs (- (vx3 ol) (vx3 rl))) (+ (* 0.5f0 (vx3 s)) (vx3 ob)))
+              (<= (abs (- (vy3 ol) (vy3 rl))) (+ (* 0.5f0 (vy3 s)) (vy3 ob)))
+              (<= (abs (- (vz3 ol) (vz3 rl))) (+ (* 0.5f0 (vz3 s)) (vz3 ob))))))
       (vec2
-       (let ((rl (vec2 (+ (vx3 region) (* 0.5 (vx3 s)))
-                       (+ (vy3 region) (* 0.5 (vy3 s))))))
+       (let ((rl (vec2 (+ (vx3 region) (* 0.5f0 (vx3 s)))
+                       (+ (vy3 region) (* 0.5f0 (vy3 s))))))
          (declare (dynamic-extent rl))
-         (and (<= (abs (- (vx2 ol) (vx2 rl))) (+ (* 0.5 (vx3 s)) (vx2 ob)))
-              (<= (abs (- (vy2 ol) (vy2 rl))) (+ (* 0.5 (vy3 s)) (vy2 ob)))))))))
+         (and (<= (abs (- (vx2 ol) (vx2 rl))) (+ (* 0.5f0 (vx3 s)) (vx2 ob)))
+              (<= (abs (- (vy2 ol) (vy2 rl))) (+ (* 0.5f0 (vy3 s)) (vy2 ob)))))))))
 
 (declaim (inline region-contains-p))
 (defun region-contains-p (object region)
@@ -292,19 +292,19 @@
         (s (region-size region)))
     (etypecase ol
       (vec3
-       (let ((rl (vec3 (+ (vx3 region) (* 0.5 (vx3 s)))
-                       (+ (vy3 region) (* 0.5 (vy3 s)))
-                       (+ (vz3 region) (* 0.5 (vz3 s))))))
+       (let ((rl (vec3 (+ (vx3 region) (* 0.5f0 (vx3 s)))
+                       (+ (vy3 region) (* 0.5f0 (vy3 s)))
+                       (+ (vz3 region) (* 0.5f0 (vz3 s))))))
          (declare (dynamic-extent rl))
-         (and (<= (abs (- (vx3 ol) (vx3 rl))) (- (* 0.5 (vx3 s)) (vx3 ob)))
-              (<= (abs (- (vy3 ol) (vy3 rl))) (- (* 0.5 (vy3 s)) (vy3 ob)))
-              (<= (abs (- (vz3 ol) (vz3 rl))) (- (* 0.5 (vz3 s)) (vz3 ob))))))
+         (and (<= (abs (- (vx3 ol) (vx3 rl))) (- (* 0.5f0 (vx3 s)) (vx3 ob)))
+              (<= (abs (- (vy3 ol) (vy3 rl))) (- (* 0.5f0 (vy3 s)) (vy3 ob)))
+              (<= (abs (- (vz3 ol) (vz3 rl))) (- (* 0.5f0 (vz3 s)) (vz3 ob))))))
       (vec2
-       (let ((rl (vec2 (+ (vx3 region) (* 0.5 (vx3 s)))
-                       (+ (vy3 region) (* 0.5 (vy3 s))))))
+       (let ((rl (vec2 (+ (vx3 region) (* 0.5f0 (vx3 s)))
+                       (+ (vy3 region) (* 0.5f0 (vy3 s))))))
          (declare (dynamic-extent rl))
-         (and (<= (abs (- (vx2 ol) (vx2 rl))) (- (* 0.5 (vx3 s)) (vx2 ob)))
-              (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5 (vy3 s)) (vx2 ob)))))))))
+         (and (<= (abs (- (vx2 ol) (vx2 rl))) (- (* 0.5f0 (vx3 s)) (vx2 ob)))
+              (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5f0 (vy3 s)) (vx2 ob)))))))))
 
 (defmethod serialize ((container container) file (object->id symbol))
   (serialize container file (fdefinition object->id)))
