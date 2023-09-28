@@ -127,7 +127,7 @@ See REGION (type)
 See CONTAINER (type)")
 
   (function call-with-overlapping
-    "Calls FUNCTION with every object contained in REGION.
+    "Calls FUNCTION with every object which overlaps REGION.
 
 The region is coerced to a region via ENSURE-REGION.
 The function *will* be called with objects that overlap the specified
