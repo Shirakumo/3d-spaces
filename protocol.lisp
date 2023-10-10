@@ -13,8 +13,9 @@
 (defgeneric leave (object container))
 (defgeneric update (object container))
 (defgeneric call-with-all (function container))
-(defgeneric call-with-contained (function container region))
+(defgeneric call-with-candidates (function container region))
 (defgeneric call-with-overlapping (function container region))
+(defgeneric call-with-contained (function container region))
 (defgeneric call-with-intersecting (funciton container ray-origin ray-direction))
 
 (defgeneric serialize (container file object->id))
@@ -198,7 +199,7 @@
          (call-with-all #',thunk ,container)
          ,result))))
 
-(defmacro do-contained ((element container region &optional result) &body body)
+(defmacro do-candidates ((element container region &optional result) &body body)
   (let ((thunk (gensym "THUNK"))
         (regiong (gensym "REGION")))
     `(with-region (,regiong)
@@ -207,7 +208,7 @@
          (flet ((,thunk (,element)
                   ,@body))
            (declare (dynamic-extent #',thunk))
-           (call-with-contained #',thunk ,container ,regiong)
+           (call-with-candidates #',thunk ,container ,regiong)
            ,result)))))
 
 (defmacro do-overlapping ((element container region &optional result) &body body)
@@ -220,6 +221,18 @@
                   ,@body))
            (declare (dynamic-extent #',thunk))
            (call-with-overlapping #',thunk ,container ,regiong)
+           ,result)))))
+
+(defmacro do-contained ((element container region &optional result) &body body)
+  (let ((thunk (gensym "THUNK"))
+        (regiong (gensym "REGION")))
+    `(with-region (,regiong)
+       (ensure-region ,region ,regiong)
+       (block NIL
+         (flet ((,thunk (,element)
+                  ,@body))
+           (declare (dynamic-extent #',thunk))
+           (call-with-contained #',thunk ,container ,regiong)
            ,result)))))
 
 (defmacro do-intersecting ((element container ray-origin ray-direction &optional result) &body body)
@@ -349,6 +362,19 @@
          (x (* d -0.5)))
     (call-with-overlapping function container (region x x x d d d))))
 
+(defmethod call-with-candidates (function (container container) (region region))
+  (call-with-overlapping function container region))
+
+(defmethod call-with-candidates (function (container container) thing)
+  (with-region (region)
+    (ensure-region thing region)
+    (call-with-candidates function container region)))
+
+(defmethod call-with-overlapping (function (container container) thing)
+  (with-region (region)
+    (ensure-region thing region)
+    (call-with-overlapping function container region)))
+
 (defmethod call-with-contained (function (container container) (region region))
   (call-with-overlapping function container region))
 
@@ -356,11 +382,6 @@
   (with-region (region)
     (ensure-region thing region)
     (call-with-contained function container region)))
-
-(defmethod call-with-overlapping (function (container container) thing)
-  (with-region (region)
-    (ensure-region thing region)
-    (call-with-overlapping function container region)))
 
 (defmethod call-with-intersecting (function (container container) ray-origin ray-direction)
   (let ((region (etypecase ray-origin

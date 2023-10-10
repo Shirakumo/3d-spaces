@@ -16,8 +16,9 @@
    #:leave
    #:update
    #:call-with-all
-   #:call-with-contained
+   #:call-with-candidates
    #:call-with-overlapping
+   #:call-with-contained
    #:call-with-intersecting
    #:container
    #:container-p
@@ -26,6 +27,7 @@
    #:sphere
    #:sphere-radius
    #:do-all
+   #:do-candidates
    #:do-contained
    #:do-overlapping
    #:do-intersecting

@@ -57,7 +57,7 @@ In order to add a new structure, you must:
 
 And ideally you should also:
 
-- Implement ``call-with-all``, ``call-with-contained``, ``call-with-intersecting``
+- Implement ``call-with-all``, ``call-with-candidates``, ``call-with-contained``, ``call-with-intersecting``
 - Implement ``update``, ``check``, ``reoptimize``
 - Implement ``serialize``, ``deserialize``
 - Implement ``for:make-iterator``, ``for:step-functions``

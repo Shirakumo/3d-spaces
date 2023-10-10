@@ -169,55 +169,44 @@
         (append first `((with-nesting ,@rest)))
         first)))
 
-(defmethod call-with-contained (function (grid grid) (region region))
-  (declare (optimize speed (safety 1)))
-  (let ((function (ensure-function function))
-        (size (region-size region))
-        (data (grid-data grid)))
-    (%with-grid-coordinates (x- y- z-) (grid (vx3 region) (vy3 region) (vz3 region))
-      (%with-grid-coordinates (x+ y+ z+) (grid (+ (vx3 region) (vx3 size)) (+ (vy3 region) (vy3 size)) (+ (vz3 region) (vz3 size)))
-        (with-nesting
-          (loop for z from z- below z+
-                for zi = (the (unsigned-byte 32) (* z w h))
-                do)
-          (loop for y from y- below y+
-                for yi = (the (unsigned-byte 32) (* y w))
-                do)
-          (loop for x from x- below x+
-                for i = (+ x yi zi)
-                do)
-          (loop for object in (aref data i)
-                do (funcall function object)))))))
-
-(defmethod call-with-overlapping (function (grid grid) (region region))
-  (declare (optimize speed (safety 1)))
-  (let ((function (ensure-function function))
-        (size (region-size region))
-        (cell-size (grid-cell grid))
-        (data (grid-data grid)))
-    ;; We expand the search cells by one to ensure we grab objects
-    ;; that overlap into the space from outside, since we store bottom
-    ;; left corners of objects only.
-    (%with-grid-coordinates (x- y- z- :clamp nil) (grid (- (vx3 region) cell-size)
-                                                        (- (vy3 region) cell-size)
-                                                        (- (vz3 region) cell-size))
-      (%with-grid-coordinates (x+ y+ z+ :clamp nil) (grid (+ (vx3 region) (vx3 size) cell-size)
-                                                          (+ (vy3 region) (vy3 size) cell-size)
-                                                          (+ (vz3 region) (vz3 size) cell-size))
-        (when (and (< x- w) (< y- h) (< z- d)
-                   (<= 0 x+) (<= 0 y+) (<= 0 z+))
-         (with-nesting
-           (loop for z from (max z- 0) below (min z+ d)
-                 for zi = (the (unsigned-byte 32) (* z w h))
-                 do)
-           (loop for y from (max y- 0) below (min y+ h)
-                 for yi = (the (unsigned-byte 32) (* y w))
-                 do)
-           (loop for x from (max x- 0) below (min x+ w)
-                 for i = (+ x yi zi)
-                 do)
-           (loop for object in (aref data i)
-                 do (funcall function object))))))))
+(macrolet ((define (name fine-test extend)
+             `(defmethod ,name (function (grid grid) (region region))
+                (declare (optimize speed (safety 1)))
+                (let ((function (ensure-function function))
+                      (size (region-size region))
+                      (cell-size (grid-cell grid))
+                      (data (grid-data grid)))
+                  ;; For the overlap query, we expand the search cells
+                  ;; by one to ensure we grab objects that overlap
+                  ;; into the query region from "below", since we
+                  ;; store bottom left corners of objects only.
+                  (%with-grid-coordinates (x- y- z- :clamp nil) ,(if extend
+                                                                     `(grid (- (vx3 region) cell-size)
+                                                                            (- (vy3 region) cell-size)
+                                                                            (- (vz3 region) cell-size))
+                                                                     `(grid (vx3 region) (vy3 region) (vz3 region)))
+                    (%with-grid-coordinates (x+ y+ z+ :clamp nil) (grid (+ (vx3 region) (vx3 size) cell-size)
+                                                                        (+ (vy3 region) (vy3 size) cell-size)
+                                                                        (+ (vz3 region) (vz3 size) cell-size))
+                      (when (and (< x- w) (< y- h) (< z- d)
+                                 (<= 0 x+) (<= 0 y+) (<= 0 z+))
+                        (with-nesting
+                          (loop for z from (max z- 0) below (min z+ d)
+                                for zi = (the (unsigned-byte 32) (* z w h))
+                                do)
+                          (loop for y from (max y- 0) below (min y+ h)
+                                for yi = (the (unsigned-byte 32) (* y w))
+                                do)
+                          (loop for x from (max x- 0) below (min x+ w)
+                                for i = (+ x yi zi)
+                                do)
+                          (loop for object in (aref data i)
+                                ,@(when fine-test
+                                    `(when (,fine-test object region)))
+                                do (funcall function object))))))))))
+  (define call-with-candidates  nil               t)
+  (define call-with-overlapping region-overlaps-p t)
+  (define call-with-contained   region-contains-p nil))
 
 (defmethod call-with-intersecting (function (grid grid) ray-origin ray-direction)
   (declare (optimize speed (safety 1)))

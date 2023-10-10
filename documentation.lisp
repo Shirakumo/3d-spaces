@@ -112,6 +112,21 @@ See CONTAINER (type)")
 See DO-ALL
 See CONTAINER (type)")
 
+  (function call-with-candidates
+    "Calls FUNCTION with every object which approximately overlaps REGION.
+
+The region is coerced to a region via ENSURE-REGION.
+
+FUNCTION *may* be called with any object contained in
+CONTAINER. However, depending on the type of CONTAINER, the set of
+objects with which FUNCTION is actually called is usually a moderate
+superset of the objects that in CONTAINER that overlap REGION.
+
+See DO-CANDIDATES
+See ENSURE-REGION
+See REGION (type)
+See CONTAINER (type)")
+
   (function call-with-contained
     "Calls FUNCTION with every object contained in REGION.
 
@@ -243,12 +258,12 @@ Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-ALL")
 
-  (function do-contained
-    "Convenience macro to iterate over objects contained in the region.
+  (function do-candidates
+    "Convenience macro to iterate over objects that approximate overlap the region.
 
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
-See CALL-WITH-CONTAINED")
+See CALL-WITH-CANDIDATES")
 
   (function do-overlapping
     "Convenience macro to iterate over objects overlapping the region.
@@ -256,6 +271,13 @@ See CALL-WITH-CONTAINED")
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-OVERLAPPING")
+
+  (function do-contained
+    "Convenience macro to iterate over objects contained in the region.
+
+Returns the RETURN value, and executes BODY in a BLOCK NIL context.
+
+See CALL-WITH-CONTAINED")
 
   (function do-intersecting
     "Convenience macro to iterate over objects intersecting the ray.
