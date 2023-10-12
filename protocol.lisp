@@ -138,7 +138,7 @@
                          (vz3 region) (- (vz3 location) (vz3 bsize))))
              (vec2 (setf (vx3 region) (- (vx2 location) (vx2 bsize))
                          (vy3 region) (- (vy2 location) (vy2 bsize))
-                         (vz3 region) 0.0)))
+                         (vz3 region) 0.0f0)))
            (let ((rsize (region-size region)))
              (etypecase bsize
                (vec3 (setf (vx3 rsize) (* 2.0f0 (vx3 bsize))
@@ -146,7 +146,7 @@
                            (vz3 rsize) (* 2.0f0 (vz3 bsize))))
                (vec2 (setf (vx3 rsize) (* 2.0f0 (vx2 bsize))
                            (vy3 rsize) (* 2.0f0 (vy2 bsize))
-                           (vz3 rsize) 0.0))))
+                           (vz3 rsize) 0.0f0))))
            region)
           (T
            (ensure-region object (region 0.0 0.0 0.0 0.0 0.0 0.0))))))
