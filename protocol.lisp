@@ -432,7 +432,12 @@
     (call-with-overlapping function container region)))
 
 (defmethod call-with-contained (function (container container) (region region))
-  (call-with-overlapping function container region))
+  (let ((function (ensure-function function)))
+    (flet ((consider (object)
+             (when (region-contains-p object region)
+               (funcall function object))))
+      (declare (dynamic-extent #'consider))
+      (call-with-overlapping #'consider container region))))
 
 (defmethod call-with-contained (function (container container) thing)
   (with-region (region)
