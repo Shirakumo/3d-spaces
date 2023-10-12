@@ -165,7 +165,7 @@
               (space:do-intersecting (object container (vec 0 0 0) (vec 1 1 0) list)
                 (push object list))))))
 
-    (group (randomized)
+    #+(or) (group (randomized)
       (let ((container (make-container))
             (objects (loop repeat 10
                            collect (make-object (vrand (vec 0 0 0) 100) (vrand (vec 50 50 50) 100)))))
