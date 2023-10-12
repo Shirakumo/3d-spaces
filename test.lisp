@@ -62,23 +62,23 @@
 
 (define-test bvh2
   :parent 2d
-  (test-container-generic #'bvh2:make-bvh #'box2))
+  (test-container-generic #'bvh2:make-bvh #'box2 #'vec2-ignore-z))
 
 (define-test quadtree
   :parent 2d
-  (test-container-generic #'quadtree:make-quadtree #'box2))
+  (test-container-generic #'quadtree:make-quadtree #'box2 #'vec2-ignore-z))
 
 (define-test kd2
   :parent 2d
-  (test-container-generic (lambda () (kd-tree:make-kd-tree :dimensions 2)) #'box2))
+  (test-container-generic (lambda () (kd-tree:make-kd-tree :dimensions 2)) #'box2 #'vec2-ignore-z))
 
 (define-test grid3
   :parent 3d
-  (test-container-generic (lambda () (grid3:make-grid 10)) #'box3))
+  (test-container-generic (lambda () (grid3:make-grid 10)) #'box3 #'vec))
 
 (define-test kd3
   :parent 3d
-  (test-container-generic (lambda () (kd-tree:make-kd-tree :dimensions 3)) #'box3))
+  (test-container-generic (lambda () (kd-tree:make-kd-tree :dimensions 3)) #'box3 #'vec))
 
 (defclass box3 ()
   ((location :initarg :location :initform (vec 0 0 0) :accessor space:location)
@@ -100,14 +100,22 @@
 (defun box2 (&optional (location (vec 0 0)) (bsize (vec 0 0)))
   (make-instance 'box2 :location (vxy location) :bsize (vxy bsize)))
 
+(defun vec2-ignore-z (x y z)
+  (declare (ignore z))
+  (vec x y))
+
 (defun random* (min max)
   (+ min (random (- max min))))
 
-(defun test-container-generic (constructor object-constructor)
+(defun test-container-generic (constructor object-constructor vector-constructor)
   (flet ((make-container ()
            (funcall constructor))
          (make-object (&rest args)
-           (apply object-constructor args)))
+           (apply object-constructor args))
+         ;; MAKE-VEC instead of VEC so that VEC calls in
+         ;; macroexpansions use the correct definition.
+         (make-vec (x y z)
+           (funcall vector-constructor x y z)))
     (group (empty)
       (of-type space:container (make-container))
       (finish (space:check (make-container)))
@@ -132,9 +140,9 @@
                   (is eq box object)))
         (finish (space:do-overlapping (object container box)
                   (is eq box object)))
-        (is eq box (space:do-intersecting (object container (vec 0 0 0) (vec +1 0 0) NIL)
+        (is eq box (space:do-intersecting (object container (make-vec 0 0 0) (make-vec +1 0 0) NIL)
                      (return object)))
-        (is eq NIL (space:do-intersecting (object container (vec -1 0 0) (vec -1 0 0) NIL)
+        (is eq NIL (space:do-intersecting (object container (make-vec -1 0 0) (make-vec -1 0 0) NIL)
                      (return object)))
         (finish (space:leave box container))
         (finish (space:do-all (object container)
@@ -142,9 +150,9 @@
 
     (group (fixed)
       (let ((container (make-container))
-            (a (make-object (vec 0 0 0) (vec 5 5 5)))
-            (b (make-object (vec 15 0 0) (vec 5 5 5)))
-            (c (make-object (vec 300 0 0) (vec 5 5 5))))
+            (a (make-object (make-vec 0 0 0) (make-vec 5 5 5)))
+            (b (make-object (make-vec 15 0 0) (make-vec 5 5 5)))
+            (c (make-object (make-vec 300 0 0) (make-vec 5 5 5))))
         (finish (space:enter (list a b c) container))
         (finish (space:do-all (object container)
                   (true (or (eq object a) (eq object b) (eq object c)))))
@@ -154,25 +162,25 @@
                   (false (eq object c))))
         (is set= (list a b c)
             (let ((list ()))
-              (space:do-intersecting (object container (vec 0 0 0) (vec +1 0 0) list)
+              (space:do-intersecting (object container (make-vec 0 0 0) (make-vec +1 0 0) list)
                 (push object list))))
         (is set= (list)
             (let ((list ()))
-              (space:do-intersecting (object container (vec -15 0 0) (vec 0 +1 0) list)
+              (space:do-intersecting (object container (make-vec -15 0 0) (make-vec 0 +1 0) list)
                 (push object list))))
         (is set= (list a b)
             (let ((list ()))
-              (space:do-intersecting (object container (vec 15 0 0) (vec -1 0 0) list)
+              (space:do-intersecting (object container (make-vec 15 0 0) (make-vec -1 0 0) list)
                 (push object list))))
         (is set= (list a)
             (let ((list ()))
-              (space:do-intersecting (object container (vec 0 0 0) (vec 1 1 0) list)
+              (space:do-intersecting (object container (make-vec 0 0 0) (make-vec 1 1 0) list)
                 (push object list))))))
 
     #+(or) (group (randomized)
       (let ((container (make-container))
             (objects (loop repeat 10
-                           collect (make-object (vrand (vec 0 0 0) 100) (vrand (vec 50 50 50) 100)))))
+                           collect (make-object (vrand (make-vec 0 0 0) 100) (vrand (make-vec 50 50 50) 100)))))
         (finish (space:enter objects container))
         (finish (space:do-all (object container)
                   (true (find object objects))))
