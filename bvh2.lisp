@@ -1,6 +1,15 @@
 (in-package #:org.shirakumo.fraf.trial.space.bvh2)
 
-;; CF https://www.researchgate.net/publication/254007711_Fast_Effective_BVH_Updates_for_Animated_Scenes
+;;; CF https://www.researchgate.net/publication/254007711_Fast_Effective_BVH_Updates_for_Animated_Scenes
+
+;;; This code uses the VEC4 type to represent 2D rectangles,
+;;; indirectly by including VEC4 in the QUADTREE-NODE structure and
+;;; also directly. In this representation, the vector components have
+;;; the following semantics:
+;;; x: x coordinate of top left corner
+;;; x: y coordinate of top left corner
+;;; z: x coordinate of bottom right corner
+;;; w: y coordinate of bottom right corner
 
 (defstruct (bvh-node
             (:include vec4)
@@ -73,30 +82,33 @@
     node))
 
 (declaim (inline node-contains-p*))
-(defun node-contains-p* (node loc siz)
+(defun node-contains-p* (node region)
   (declare (optimize speed (safety 0)))
-  (declare (type vec4 node))
-  (declare (type vec2 loc siz))
+  (declare (type vec4 node region))
   (let ((nx (vx4 node))
         (ny (vy4 node))
         (nz (vz4 node))
         (nw (vw4 node))
-        (lx (vx2 loc))
-        (ly (vy2 loc))
-        (sx (vx2 siz))
-        (sy (vy2 siz)))
-    (and (<= nx (+ lx sx))
-         (<= ny (+ ly sy))
-         (<= (- lx sx) nz)
-         (<= (- ly sy) nw))))
+        (rx (vx4 region))
+        (ry (vy4 region))
+        (rz (vz4 region))
+        (rw (vw4 region)))
+    (and (<= nx rx)
+         (<= ny ry)
+         (<= rz nz)
+         (<= rw nw))))
 
 (defun node-contains-p (node object)
   (declare (optimize speed (safety 0)))
   (declare (type vec4 node))
-  (let ((loc (location object))
-        (siz (bsize object)))
-    (declare (type vec2 loc siz))
-    (node-contains-p* node loc siz)))
+  (let* ((center (location object))
+         (size/2 (bsize object))
+         (region (vec (- (vx center) (vx size/2))
+                      (- (vy center) (vy size/2))
+                      (+ (vx center) (vx size/2))
+                      (+ (vy center) (vy size/2)))))
+    (declare (type vec2 center size/2))
+    (node-contains-p* node region)))
 
 (declaim (inline node-overlaps-p))
 (defun node-overlaps-p (node region)
@@ -328,12 +340,12 @@
 
 (defmethod call-with-contained (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
-  (let ((function (ensure-function function))
-        (tentative (make-array 256))
-        (region (vec (vx3 region) (vy3 region)
-                     (+ (vx3 region) (vx3 (region-size region)))
-                     (+ (vy3 region) (vy3 (region-size region)))))
-        (i 0))
+  (let* ((function (ensure-function function))
+         (size (region-size region))
+         (region (vec (vx3 region) (vy3 region)
+                      (+ (vx3 region) (vx3 size)) (+ (vy3 region) (vy3 size))))
+         (tentative (make-array 256))
+         (i 0))
     (declare (type (integer 0 256) i))
     (declare (dynamic-extent tentative region))
     (flet ((add (node)
@@ -343,25 +355,31 @@
       (declare (inline add))
       (add (bvh-root bvh))
       (loop (decf i)
-            (let ((node (svref tentative i)))
-              (when (node-overlaps-p node region)
-                (let ((o (bvh-node-o node)))
-                  (cond (o
-                         (funcall function o))
-                        (T
-                         (add (bvh-node-l node))
-                         (add (bvh-node-r node))))))
+            (let* ((node (svref tentative i))
+                   (o (bvh-node-o node)))
+              (cond (o
+                     ;; TODO(jmoringe): should make a shared utility function
+                     (when (and (<= (vx region) (vx node)) ; REGION contains NODE
+                                (<= (vy region) (vy node))
+                                (<= (vz node) (vz region))
+                                (<= (vw node) (vw region)))
+                       (funcall function o)))
+                    (T
+                     (when (node-overlaps-p node region)
+                       (add (bvh-node-l node))
+                       (add (bvh-node-r node)))))
               (when (= 0 i)
                 (return)))))))
 
 (defmethod call-with-overlapping (function (bvh bvh) (region region))
   (declare (optimize speed (safety 1)))
   (let* ((function (ensure-function function))
-         (siz (vec (* 0.5 (vx3 (region-size region))) (* 0.5 (vy3 (region-size region)))))
-         (loc (vec (+ (vx3 region) (vx2 siz)) (+ (vy3 region) (vy2 siz)))))
-    (declare (dynamic-extent loc siz))
+         (size (region-size region))
+         (region (vec (vx3 region) (vy3 region)
+                      (+ (vx3 region) (vx3 size)) (+ (vy3 region) (vy3 size)))))
+    (declare (dynamic-extent region))
     (labels ((recurse (node)
-               (when (and node (node-contains-p* node loc siz))
+               (when (and node (node-overlaps-p node region))
                  (let ((o (bvh-node-o node)))
                    (cond (o
                           (funcall function o))
@@ -453,7 +471,8 @@
        (perimiter-heuristic x y z w)))
 
 (defun node-cost (node)
-  (declare (optimize speed (safety 0)) (type vec4 node))
+  (declare (optimize speed (safety 0))
+           (type vec4 node))
   (the single-float
        (cost (vx4 node) (vy4 node)
              (vz4 node) (vw4 node))))
