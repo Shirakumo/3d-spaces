@@ -195,7 +195,7 @@
         (finish (space:do-all (object container)
                   (false object)))))
 
-    #+(or) (group (randomized)
+    (group (randomized)
       (let ((container (make-container))
             (objects (loop repeat 10
                            collect (make-object (vrand (make-vec 0 0 0) 100) (vrand (make-vec 50 50 50) 100)))))
