@@ -1,11 +1,20 @@
 (in-package #:org.shirakumo.fraf.trial.space.quadtree)
 
+;;; This code uses the VEC4 type to represent 2D rectangles,
+;;; indirectly by including VEC4 in the QUADTREE-NODE structure and
+;;; also directly. In this representation, the vector components have
+;;; the following semantics:
+;;; x: x coordinate of top left corner
+;;; x: y coordinate of top left corner
+;;; z: x coordinate of bottom right corner
+;;; w: y coordinate of bottom right corner
+
 (declaim (inline make-object-vector))
 (defun make-object-vector (&optional (initial-size 4))
   (make-array initial-size :adjustable T :fill-pointer 0))
 
 (defstruct (quadtree-node
-            (:include vec4) ;; x and y are top left corner, z and w are bottom right corner.
+            (:include vec4) ;; See comment at beginning of file
             (:constructor %%make-quadtree-node
                 (org.shirakumo.fraf.math.vectors::varr4
                  depth min-size threshold parent top-left top-right bottom-left bottom-right))
@@ -674,15 +683,21 @@
       (funcall function object))))
 
 (defmethod call-with-contained (function (tree quadtree) (region region))
-  (let ((function (ensure-function function))
-        (region (vec (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
+  (let* ((function (ensure-function function))
+         (x (vx3 region))
+         (y (vy3 region))
+         (size (region-size region))
+         (region (vec x y (+ x (vx3 size)) (+ y (vy3 size)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain T))
       (funcall function object))))
 
 (defmethod call-with-overlapping (function (tree quadtree) (region region))
-  (let ((function (ensure-function function))
-        (region (vec (vx3 region) (vy3 region) (vx3 (region-size region)) (vy3 (region-size region)))))
+  (let* ((function (ensure-function function))
+         (x (vx3 region))
+         (y (vy3 region))
+         (size (region-size region))
+         (region (vec x y (+ x (vx3 size)) (+ y (vy3 size)))))
     (declare (dynamic-extent region))
     (for:for ((object over tree :region region :contain NIL))
       (funcall function object))))
