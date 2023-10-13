@@ -190,7 +190,10 @@
         (is set= (list a)
             (let ((list ()))
               (space:do-intersecting (object container (make-vec 0 0 0) (make-vec 1 1 0) list)
-                (push object list))))))
+                (push object list))))
+        (finish (space:leave (list b c a) container))
+        (finish (space:do-all (object container)
+                  (false object)))))
 
     #+(or) (group (randomized)
       (let ((container (make-container))
