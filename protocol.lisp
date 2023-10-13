@@ -317,7 +317,7 @@
                        (+ (vy3 region) (* 0.5f0 (vy3 s))))))
          (declare (dynamic-extent rl))
          (and (<= (abs (- (vx2 ol) (vx2 rl))) (- (* 0.5f0 (vx3 s)) (vx2 ob)))
-              (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5f0 (vy3 s)) (vx2 ob)))))))))
+              (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5f0 (vy3 s)) (vy2 ob)))))))))
 
 (declaim (inline ray-intersects-box-p))
 (defun ray-intersects-box-p (ray-origin ray-direction box-min box-max
