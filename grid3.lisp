@@ -253,4 +253,4 @@
                      (try (+ i (the (unsigned-byte 32) (+ 1 w zstride))))
                      (decf x1 dx) (when (< x1 0) (incf x1 dm) (incf x0 sx) (incf i (* sx)))
                      (decf y1 dy) (when (< y1 0) (incf y1 dm) (incf y0 sy) (incf i (* sy w)))
-                     (decf z1 dz) (when (< z1 0) (incf z1 dm) (incf z0 sz) (incf i (the (unsigned-byte 32) (* sz zstride))))))))))
+                     (decf z1 dz) (when (< z1 0) (incf z1 dm) (incf z0 sz) (incf i (the (signed-byte 32) (* sz zstride))))))))))
