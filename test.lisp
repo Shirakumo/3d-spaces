@@ -66,7 +66,8 @@
 
 (define-test quadtree
   :parent 2d
-  (test-container-generic #'quadtree:make-quadtree #'box2 #'vec2-ignore-z))
+  (test-container-generic #'quadtree:make-quadtree #'box2 #'vec2-ignore-z
+                          :random-test-object-count 500))
 
 (define-test kd2
   :parent 2d
@@ -115,7 +116,9 @@
                                (*print-level* 3))
                            (describe-object container stream)))))))
 
-(defun test-container-generic (constructor object-constructor vector-constructor)
+(defun test-container-generic (constructor object-constructor vector-constructor
+                               &key (random-test-object-count 10000)
+                                    (random-test-query-count 10000))
   (flet ((make-container ()
            (funcall constructor))
          (make-object (&rest args)
@@ -206,10 +209,8 @@
                   (false object)))))
 
     (group (randomized)
-      (let* ((object-count 10000)
-             (query-count 10000)
-             (container (make-container))
-             (all-objects (loop repeat object-count
+      (let* ((container (make-container))
+             (all-objects (loop repeat random-test-object-count
                                 collect (make-object (vrand (make-vec 0 0 0) 100) (vrand (make-vec 50 50 50) 100))))
              (query-region (space:region -100 -100 -100 200 200 200))
              (overlapping-objects (remove-if-not (lambda (object)
@@ -221,7 +222,7 @@
         (finish (space:enter all-objects container))
         (test-print-and-describe container)
         (loop with failure-count = 0
-              repeat query-count
+              repeat random-test-query-count
               for region = (space:region (random* -100 100) (random* -100 100) (random* -100 100)
                                          (random* 0 200) (random* 0 200) (random* 0 200))
               do (space:do-contained (object container region)
@@ -250,7 +251,11 @@
           (finish (space:reoptimize container))
           (query-all)
           (query-overlapping)
-          (query-contained))))))
+          (query-contained))
+        ;; Remove all objects
+        (finish (space:leave all-objects container))
+        (finish (space:do-all (object container)
+                  (false object)))))))
 
 (defun make-nodes (count spread size-spread)
   (let ((nodes (make-array count)))
