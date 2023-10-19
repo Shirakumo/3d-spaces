@@ -42,9 +42,8 @@
 (defmethod print-object ((node quadtree-node) stream)
   (print-unreadable-object (node stream :type T)
     (with-vec (x y z w) node
-      (format stream "~a ~a ~a ~a~@[: ~{~a~^, ~}~]"
-              x y z w (loop for object across (quadtree-node-objects node)
-                            collecting object)))))
+      (format stream "~a ~a ~a ~a: ~:d object~:p"
+              x y z w (length (quadtree-node-objects node))))))
 
 (declaim (inline node-empty-p))
 (defun node-empty-p (node)
@@ -445,6 +444,13 @@
       (node-set-threshold root threshold))
     tree))
 
+(defmethod print-object ((object quadtree) stream)
+  (let ((root (quadtree-root object)))
+    (print-unreadable-object (object stream :type T)
+      (format stream "~a ~a ~a ~a: ~:d object~:p"
+              (vx root) (vy root) (vz root) (vw root)
+              (hash-table-count (quadtree-table object))))))
+
 (defun quadtree-insert (tree object)
   (declare (optimize speed))
   (when (gethash object (quadtree-table tree))
@@ -540,12 +546,8 @@
 
 (defmethod describe-object ((tree quadtree) stream)
   (call-next-method)
-  (format T "~%~&-------------------------")
-  (labels ((recurse (node)
-             (when (quadtree-node-active-p node)
-               (format T "~&~v@{|  ~}└ ~a" (quadtree-node-depth node) node)
-               (for-node-children (recurse node)))))
-    (recurse (quadtree-root tree))))
+  (format stream "~%~&-------------------------")
+  (describe-tree (quadtree-root tree) #'node-children stream))
 
 (defun quadtree-lines (tree)
   (let ((root (quadtree-root tree))

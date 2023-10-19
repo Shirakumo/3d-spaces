@@ -107,6 +107,14 @@
 (defun random* (min max)
   (+ min (random (- max min))))
 
+(defun test-print-and-describe (container)
+  (true (plusp (length (with-output-to-string (stream)
+                         (princ container stream)))))
+  (true (plusp (length (with-output-to-string (stream)
+                         (let ((*print-right-margin* 80)
+                               (*print-level* 3))
+                           (describe-object container stream)))))))
+
 (defun test-container-generic (constructor object-constructor vector-constructor)
   (flet ((make-container ()
            (funcall constructor))
@@ -132,6 +140,7 @@
       (let ((container (make-container))
             (box (make-object)))
         (finish (space:enter box container))
+        (test-print-and-describe container)
         (finish (space:do-all (object container)
                   (is eq box object)))
         (finish (space:do-candidates (object container box)
@@ -154,6 +163,7 @@
             (b (make-object (make-vec 15 0 0) (make-vec 5 5 5)))
             (c (make-object (make-vec 300 0 0) (make-vec 5 5 5))))
         (finish (space:enter (list a b c) container))
+        (test-print-and-describe container)
         (is set= (list a b c)
             (let ((list ()))
               (space:do-all (object container list)
@@ -209,6 +219,7 @@
                                                  (space:region-contains-p object query-region))
                                                all-objects)))
         (finish (space:enter all-objects container))
+        (test-print-and-describe container)
         (loop with failure-count = 0
               repeat query-count
               for region = (space:region (random* -100 100) (random* -100 100) (random* -100 100)
