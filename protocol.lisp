@@ -319,6 +319,16 @@
          (and (<= (abs (- (vx2 ol) (vx2 rl))) (- (* 0.5f0 (vx3 s)) (vx2 ob)))
               (<= (abs (- (vy2 ol) (vy2 rl))) (- (* 0.5f0 (vy3 s)) (vy2 ob)))))))))
 
+(declaim (inline box-intersects-box-p))
+(defun box-intersects-box-p (box1-min box1-max box2-min box2-max)
+  (and (v<= box1-min box2-max) (v<= box2-min box1-max)))
+
+(declaim (inline box-contains-box-p))
+(defun box-contains-box-p (contained-box-min contained-box-max
+                           containing-box-min containing-box-max)
+  (and (v<= containing-box-min contained-box-min)
+       (v<= contained-box-max containing-box-max)))
+
 (declaim (inline ray-intersects-box-p))
 (defun ray-intersects-box-p (ray-origin ray-direction box-min box-max
                              &key (eps 1f-10))

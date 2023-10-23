@@ -2,7 +2,13 @@
   (:use #:cl #:org.shirakumo.fraf.math)
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))
-  (:intern #:describe-tree #:ensure-function #:clamp)
+  (:intern
+   #:describe-tree
+   #:ensure-function
+   #:clamp
+   #:box-intersects-box-p
+   #:box-contains-box-p
+   #:ray-intersects-box-p)
   (:export
    #:location
    #:bsize
@@ -93,7 +99,10 @@
   (defpackage* #:org.shirakumo.fraf.trial.space.kd-tree
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
     (:import-from #:org.shirakumo.fraf.trial.space
-     #:ensure-function)
+     #:ensure-function
+     #:box-intersects-box-p
+     #:box-contains-box-p
+     #:ray-intersects-box-p)
     (:export
      #:kd-tree
      #:make-kd-tree
