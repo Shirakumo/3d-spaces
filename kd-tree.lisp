@@ -726,7 +726,8 @@
       (setf (aref v 1) (aref c 1))
       (setf (aref v 2) (aref c 2))
       (flet ((visit (node)
-               (map NIL function (node-objects node))))
+               (loop for object across (node-objects node)
+                     do (funcall function (object-info-object object)))))
         (declare (dynamic-extent #'visit))
         (%visit-sphere #'visit (kd-tree-root container) c (sphere-radius sphere) v)))))
 
@@ -851,10 +852,10 @@
                      (etypecase node
                        (leaf
                         (loop for object across (node-objects node)
-                              for distance = (with-array (l (location object))
+                              for distance = (with-array (l (location (object-info-object object)))
                                                (sqrdist c l))
                               do (when (< distance radius)
-                                   (setf radius (funcall function object distance)))))
+                                   (setf radius (funcall function (object-info-object object) distance)))))
                        (inner-node
                         (let ((a (node-near node))
                               (b (node-far node))
