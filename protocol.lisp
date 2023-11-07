@@ -469,7 +469,8 @@
   ;;       the duplicate call.
   (do-all (a container)
     (flet ((thunk (b)
-             (funcall function a b)))
+             (unless (eq a b)
+               (funcall function a b))))
       (declare (dynamic-extent #'thunk))
       (call-with-overlapping #'thunk container a))))
 
