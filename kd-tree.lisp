@@ -604,10 +604,13 @@
 
 (defun kd-tree-remove (object tree)
   (declare (optimize speed (safety 1)))
-  (let ((split-size (kd-tree-split-size tree))
-        (location (location object))
-        (size (bsize object)))
-    (with-array (u (v- location size))
+  (let ((leaf (gethash object (kd-tree-object->node tree))))
+    (when leaf
+      ;; Delete OBJECT from the leaf. `leaf-delete-object' returns NIL
+      ;; if nothing had to be done but that case should not happen
+      ;; since we checked the object to node mapping.
+      (assert (leaf-delete-object object leaf))
+      (remhash object (kd-tree-object->node tree))
       (labels ((merge-nodes (parent node other-node)
                  (let ((objects (node-objects node))
                        (other-objects (node-objects other-node)))
@@ -617,47 +620,38 @@
                                   parent objects (node-bb-min node) (node-bb-max node))))
                      (nexpand-bounds-for-node merged other-node)
                      (register-object-infos tree objects merged))))
-               (visit (parent node)
-                 (cond ;; Reached a leaf. Delete OBJECT from the
-                       ;; leaf. `leaf-delete-object' returns NIL
-                       ;; if nothing had to be done.
-                       ((leaf-p node)
-                        (when (leaf-delete-object object node)
-                          (remhash object (kd-tree-object->node tree))
-                          node))
-                       ((< (aref u (node-axis node)) (node-position node))
-                        ;; If the recursive `visit' call returns
-                        ;; NIL, nothing had to be done. Otherwise,
-                        ;; adjust bounding box.
-                        (let ((child (visit node (node-near node))))
-                          (cond ((null child)
-                                 NIL)
-                                ((and (leaf-p child) (leaf-p (node-far node))
-                                      (< (+ (length (node-objects child))
-                                            (length (node-objects (node-far node))))
-                                         split-size))
-                                 (merge-nodes parent child (node-far node)))
-                                (T
-                                 (nexpand-bounds-for-node node child)
-                                 (setf (node-near node) child)
-                                 node))))
-                       (T
-                        (let ((child (visit node (node-far node))))
-                          (cond ((null child)
-                                 NIL)
-                                ((and (leaf-p child) (leaf-p (node-near node))
-                                      (< (+ (length (node-objects (node-near node)))
-                                            (length (node-objects child)))
-                                         split-size))
-                                 (merge-nodes parent child (node-near node)))
-                                (T
-                                 (nexpand-bounds-for-node node child)
-                                 (setf (node-far node) child)
-                                 node)))))))
-        (declare (dynamic-extent #'visit))
-        (let ((new-root (visit nil (kd-tree-root tree))))
-          (when new-root
-            (setf (kd-tree-root tree) new-root)))))))
+               (visit (node child which)
+                 (let ((parent (node-parent node))
+                       (other (ecase which
+                                (:near (node-far node))
+                                (:far  (node-near node)))))
+                   ;; If the combined object counts of the two
+                   ;; children of NODE are below the split size, NODE
+                   ;; should be replaced with a new leaf node that is
+                   ;; the result of merging the two
+                   ;; children. Otherwise updating the bounding box of
+                   ;; NODE and replacing one of its children is
+                   ;; sufficient.
+                   (cond ((and (leaf-p child) (leaf-p other)
+                               (< (+ (length (node-objects child))
+                                     (length (node-objects other)))
+                                  (kd-tree-split-size tree)))
+                          (let ((new-node (merge-nodes parent child other)))
+                            (visit-parent parent node new-node)))
+                         (T
+                          (v<- (node-bb-min node) (node-bb-min other))
+                          (v<- (node-bb-max node) (node-bb-max other))
+                          (nexpand-bounds-for-node node child)
+                          (ecase which
+                            (:near (setf (node-near node) child))
+                            (:far (setf (node-far node) child)))
+                          (visit-parent parent node node)))))
+               (visit-parent (parent old-child new-child)
+                 (if parent
+                     (let ((which (if (eq old-child (node-near parent)) :near :far)))
+                       (visit parent new-child which))
+                     (setf (kd-tree-root tree) new-child))))
+        (visit-parent (node-parent leaf) leaf leaf)))))
 
 ;;; Protocol methods
 
