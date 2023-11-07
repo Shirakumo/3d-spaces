@@ -284,10 +284,10 @@
             (:constructor %make-kd-tree (dimensions split-size max-depth root))
             (:copier NIL)
             (:predicate NIL))
-  (dimensions 0 :type dimension-count)
-  (split-size 0 :type (integer 2 255))
-  (max-depth 0 :type (unsigned-byte 8))
-  (root (error "required") :type node))
+  (dimensions 0 :type dimension-count :read-only T)
+  (split-size 0 :type (integer 2 255) :read-only T)
+  (max-depth 0 :type (unsigned-byte 8) :read-only T)
+  (root (error "required") :type node)
 
 (defun make-kd-tree (&key (dimensions 3) (split-size 8) (max-depth 255))
   (check-type dimensions dimension-count)
@@ -297,7 +297,7 @@
 
 (defmethod print-object ((tree kd-tree) stream)
   (print-unreadable-object (tree stream :type T)
-    (format stream "~d (~d children)"
+    (format stream "~d (~d object~:p)"
             (kd-tree-dimensions tree)
             (object-count tree))))
 
@@ -851,11 +851,12 @@
           (labels ((visit (node)
                      (etypecase node
                        (leaf
-                        (loop for object across (node-objects node)
-                              for distance = (with-array (l (location (object-info-object object)))
+                        (loop for info across (node-objects node)
+                              for object = (object-info-object info)
+                              for distance = (with-array (l (location object))
                                                (sqrdist c l))
                               do (when (< distance radius)
-                                   (setf radius (funcall function (object-info-object object) distance)))))
+                                   (setf radius (funcall function object distance)))))
                        (inner-node
                         (let ((a (node-near node))
                               (b (node-far node))
