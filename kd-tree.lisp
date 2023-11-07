@@ -626,7 +626,9 @@
                                  (setf (node-far node) child)
                                  node)))))))
         (declare (dynamic-extent #'visit))
-        (setf (kd-tree-root tree) (visit (kd-tree-root tree)))))))
+        (let ((new-root (visit (kd-tree-root tree))))
+          (when new-root
+            (setf (kd-tree-root tree) new-root)))))))
 
 ;;; Protocol methods
 
