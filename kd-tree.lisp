@@ -178,6 +178,7 @@
             (:constructor NIL)
             (:copier NIL)
             (:predicate NIL))
+  (parent (error "required") :type (or null node))
   ;; Node bounding box which bounds everything in the subtree rooted
   ;; at the node. Always stored as `vec3'. For dimensions < 3, only
   ;; the first components are accessed. The values of the slots are
@@ -190,7 +191,7 @@
 (defstruct (inner-node
             (:include node)
             (:conc-name node-)
-            (:constructor %make-inner-node-with-bounds (near far axis position bb-min bb-max))
+            (:constructor %make-inner-node-with-bounds (parent near far axis position bb-min bb-max))
             (:copier NIL)
             (:predicate NIL))
   ;; Tree structure
@@ -200,8 +201,8 @@
   (axis 0 :type axis-index)
   (position 0.0f0 :type single-float))
 
-(defun make-inner-node (near far axis position bb-min bb-max)
-  (%make-inner-node-with-bounds near far axis position bb-min bb-max))
+(defun make-inner-node (parent near far axis position bb-min bb-max)
+  (%make-inner-node-with-bounds parent near far axis position bb-min bb-max))
 
 (defmethod print-object ((node inner-node) stream)
   (print-unreadable-object (node stream :type T)
@@ -231,20 +232,20 @@
 (defstruct (leaf
             (:include node)
             (:conc-name node-)
-            (:constructor %make-leaf (objects bb-min bb-max))
+            (:constructor %make-leaf (parent objects bb-min bb-max))
             (:copier NIL))
   (objects (error "required") :type object-info-vector :read-only T))
 
-(declaim (ftype (function (&optional object-info-vector) (values node &optional NIL))
+(declaim (ftype (function ((or null inner-node) &optional object-info-vector) (values node &optional NIL))
                 make-leaf))
-(defun make-leaf (&optional object-infos)
+(defun make-leaf (parent &optional object-infos)
   (multiple-value-bind (min max) (compute-bounds-for-objects object-infos)
     (if object-infos
-        (%make-leaf object-infos min max)
-        (%make-leaf (make-object-info-vector) min max))))
+        (%make-leaf parent object-infos min max)
+        (%make-leaf parent (make-object-info-vector) min max))))
 
-(defun make-leaf-with-bounds (object-infos bb-min bb-max)
-  (%make-leaf object-infos bb-min bb-max))
+(defun make-leaf-with-bounds (parent object-infos bb-min bb-max)
+  (%make-leaf parent object-infos bb-min bb-max))
 
 (defmethod print-object ((node leaf) stream)
   (print-unreadable-object (node stream :type T)
@@ -293,7 +294,7 @@
   (check-type dimensions dimension-count)
   (assert (< 1 split-size))
   (assert (< max-depth 256))
-  (%make-kd-tree dimensions split-size max-depth (make-leaf)))
+  (%make-kd-tree dimensions split-size max-depth (make-leaf nil)))
 
 (defmethod print-object ((tree kd-tree) stream)
   (print-unreadable-object (tree stream :type T)
@@ -466,35 +467,38 @@
         (try-axis best-axis other-axes)))))
 
 (defun %enter-all (object-infos dimension-count split-size max-depth)
-  (labels ((rec (object-infos parent-axis depth)
+  (labels ((rec (object-infos parent parent-axis depth)
              (multiple-value-bind (bb-min bb-max) (compute-bounds-for-objects object-infos)
                (cond  ((< (length object-infos) split-size)
-                       (make-leaf-with-bounds object-infos bb-min bb-max))
+                       (make-leaf-with-bounds parent object-infos bb-min bb-max))
                       ((not (< depth max-depth))
                        (warn "Unable to split a set of ~:d object~:p because ~
                               depth is at max depth (~d)"
                              (length object-infos) max-depth)
-                       (make-leaf-with-bounds object-infos bb-min bb-max))
+                       (make-leaf-with-bounds parent object-infos bb-min bb-max))
                       (t
                        (multiple-value-bind (near-objects far-objects axis position)
                            (split-objects dimension-count parent-axis
                                           object-infos bb-min bb-max)
                          (if near-objects
-                             (let* ((near (rec near-objects axis (1+ depth)))
-                                    (far (rec far-objects axis (1+ depth))))
-                               (make-inner-node near far axis position bb-min bb-max))
+                             (let* ((near (rec near-objects nil axis (1+ depth)))
+                                    (far (rec far-objects nil axis (1+ depth)))
+                                    (node (make-inner-node parent near far axis position bb-min bb-max)))
+                               (setf (node-parent near) node
+                                     (node-parent far) node)
+                               node)
                              (progn
                                (warn "Unable to split a set of ~:d object~:p ~
                                       because none of the candidate splitting ~
                                       planes separated the objects"
                                      (length object-infos))
-                               (make-leaf-with-bounds object-infos bb-min bb-max)))))))))
-    (rec object-infos 0 0)))
+                               (make-leaf-with-bounds parent object-infos bb-min bb-max)))))))))
+    (rec object-infos nil 0 0)))
 
-(declaim (ftype (function (leaf dimension-count axis-index)
+(declaim (ftype (function ((or null inner-node) leaf dimension-count axis-index)
                           (values node &optional nil))
                 split-node))
-(defun split-node (node dimension-count parent-axis)
+(defun split-node (parent node dimension-count parent-axis)
   (declare (optimize speed (safety 1)))
   (let ((objects (node-objects node))
         (bb-min (node-bb-min node))
@@ -502,14 +506,17 @@
     (multiple-value-bind (near-objects far-objects axis position)
         (split-objects dimension-count parent-axis objects bb-min bb-max)
       (if near-objects
-          (let* ((near (make-leaf near-objects))
-                 (far (make-leaf far-objects)))
-            (make-inner-node near far axis position bb-min bb-max))
+          (let* ((near (make-leaf nil near-objects))
+                 (far (make-leaf nil far-objects))
+                 (node (make-inner-node parent near far axis position bb-min bb-max)))
+            (setf (node-parent near) node
+                  (node-parent far) node)
+            node)
           (progn
             (warn "Unable to split a set of ~:d object~:p because none of ~
                    the candidate splitting planes separated the objects"
                   (length objects))
-            (make-leaf-with-bounds objects bb-min bb-max))))))
+            (make-leaf-with-bounds parent objects bb-min bb-max))))))
 
 (declaim (ftype (function (node dimension-count (unsigned-byte 8) (unsigned-byte 8))
                           (values node &optional))
@@ -531,7 +538,7 @@
          (split-size (kd-tree-split-size tree))
          (info (make-object-info object)))
     (with-array (u (object-info-bb-min info))
-      (labels ((visit (node parent-axis depth)
+      (labels ((visit (node parent parent-axis depth)
                  (declare (type (unsigned-byte 8) depth))
                  (cond ;; Reached a leaf. Push the object into the
                        ;; leaf, then split the leaf if
@@ -548,13 +555,13 @@
                                        node depth)
                                  NIL)
                                 (T
-                                 (split-node node dimension-count parent-axis)))))
+                                 (split-node parent node dimension-count parent-axis)))))
                        ;; If the minimal corner of OBJECT is below the
                        ;; splitting pane, continue in the "near"
                        ;; subtree. The recursive `visit' call returns
                        ;; a (possibly new) node or NIL.
                        ((< (aref u (node-axis node)) (node-position node))
-                        (let ((child (visit (node-near node) (node-axis node) (1+ depth))))
+                        (let ((child (visit (node-near node) node (node-axis node) (1+ depth))))
                           (cond ((null child) ; tried to split CHILD but failed.
                                  (let ((max-depth (- max-depth depth)))
                                    (recompute-subtree node dimension-count split-size max-depth)))
@@ -564,7 +571,7 @@
                                  node))))
                        ;; Otherwise insert in "far" subtree using the same logic.
                        (T
-                        (let ((child (visit (node-far node) (node-axis node) (1+ depth))))
+                        (let ((child (visit (node-far node) node (node-axis node) (1+ depth))))
                           (cond ((null child)
                                  (let ((max-depth (- max-depth depth)))
                                    (recompute-subtree node dimension-count split-size max-depth)))
@@ -572,7 +579,7 @@
                                  (nexpand-bounds-for-node node child)
                                  (setf (node-far node) child)
                                  node)))))))
-        (setf (kd-tree-root tree) (visit (kd-tree-root tree) 0 0))))))
+        (setf (kd-tree-root tree) (visit (kd-tree-root tree) nil 0 0))))))
 
 (defun kd-tree-remove (object tree)
   (declare (optimize speed (safety 1)))
@@ -580,16 +587,16 @@
         (location (location object))
         (size (bsize object)))
     (with-array (u (v- location size))
-      (labels ((merge-nodes (node other-node)
+      (labels ((merge-nodes (parent node other-node)
                  (let ((objects (node-objects node))
                        (other-objects (node-objects other-node)))
                    (loop for object across other-objects
                          do (vector-push-extend object objects))
                    (let ((merged (make-leaf-with-bounds
-                                  objects (node-bb-min node) (node-bb-max node))))
+                                  parent objects (node-bb-min node) (node-bb-max node))))
                      (nexpand-bounds-for-node merged other-node)
                      merged)))
-               (visit (node)
+               (visit (parent node)
                  (cond ;; Reached a leaf. Delete OBJECT from the
                        ;; leaf. `leaf-delete-object' returns NIL
                        ;; if nothing had to be done.
@@ -600,40 +607,40 @@
                         ;; If the recursive `visit' call returns
                         ;; NIL, nothing had to be done. Otherwise,
                         ;; adjust bounding box.
-                        (let ((child (visit (node-near node))))
+                        (let ((child (visit node (node-near node))))
                           (cond ((null child)
                                  NIL)
                                 ((and (leaf-p child) (leaf-p (node-far node))
                                       (< (+ (length (node-objects child))
                                             (length (node-objects (node-far node))))
                                          split-size))
-                                 (merge-nodes child (node-far node)))
+                                 (merge-nodes parent child (node-far node)))
                                 (T
                                  (nexpand-bounds-for-node node child)
                                  (setf (node-near node) child)
                                  node))))
                        (T
-                        (let ((child (visit (node-far node))))
+                        (let ((child (visit node (node-far node))))
                           (cond ((null child)
                                  NIL)
                                 ((and (leaf-p child) (leaf-p (node-near node))
                                       (< (+ (length (node-objects (node-near node)))
                                             (length (node-objects child)))
                                          split-size))
-                                 (merge-nodes child (node-near node)))
+                                 (merge-nodes parent child (node-near node)))
                                 (T
                                  (nexpand-bounds-for-node node child)
                                  (setf (node-far node) child)
                                  node)))))))
         (declare (dynamic-extent #'visit))
-        (let ((new-root (visit (kd-tree-root tree))))
+        (let ((new-root (visit nil (kd-tree-root tree))))
           (when new-root
             (setf (kd-tree-root tree) new-root)))))))
 
 ;;; Protocol methods
 
 (defmethod clear ((tree kd-tree))
-  (setf (kd-tree-root tree) (make-leaf))
+  (setf (kd-tree-root tree) (make-leaf nil))
   tree)
 
 (defmethod reoptimize ((tree kd-tree) &key)
@@ -922,3 +929,21 @@
       (declare (dynamic-extent #'visit))
       (kd-tree-call-with-nearest #'visit location tree)
       (values candidates (min (length candidates) found)))))
+
+(defun check-consistency (tree)
+  (let ((nodes        (make-hash-table :test #'eq))
+        (object-count 0))
+    (labels ((check-node (node)
+               (assert (not (gethash node nodes)))
+               (setf (gethash node nodes) t)
+               (etypecase node
+                 (leaf
+                  (incf object-count (length (node-objects node))))
+                 (inner-node
+                  (let ((near (node-near node))
+                        (far  (node-far node)))
+                    (assert (eq node (node-parent near)))
+                    (assert (eq node (node-parent far)))
+                    (check-node near)
+                    (check-node far))))))
+      (check-node (kd-tree-root tree)))))
