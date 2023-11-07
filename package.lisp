@@ -26,6 +26,7 @@
    #:call-with-overlapping
    #:call-with-contained
    #:call-with-intersecting
+   #:call-with-pairs
    #:container
    #:container-p
    #:region
@@ -37,6 +38,7 @@
    #:do-contained
    #:do-overlapping
    #:do-intersecting
+   #:do-pairs
    #:find-region
    #:region-overlaps-p
    #:region-contains-p

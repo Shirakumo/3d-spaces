@@ -17,6 +17,7 @@
 (defgeneric call-with-overlapping (function container region))
 (defgeneric call-with-contained (function container region))
 (defgeneric call-with-intersecting (function container ray-origin ray-direction))
+(defgeneric call-with-pairs (function container))
 
 (defgeneric serialize (container file object->id))
 (defgeneric deserialize (container file id->object))
@@ -244,6 +245,15 @@
          (call-with-intersecting #',thunk ,container ,ray-origin ,ray-direction)
          ,result))))
 
+(defmacro do-pairs ((a b container &optional result) &body body)
+  (let ((thunk (gensym "THUNK")))
+    `(block NIL
+       (flet ((,thunk (,a ,b)
+                ,@body))
+         (declare (dynamic-extent #',thunk))
+         (call-with-pairs #',thunk ,container)
+         ,result))))
+
 (defun find-region (objects)
   (let ((x- most-positive-single-float)
         (x+ most-negative-single-float)
@@ -453,6 +463,15 @@
   (with-region (region)
     (ensure-region thing region)
     (call-with-contained function container region)))
+
+(defmethod call-with-pairs (function (container container))
+  ;; TODO: this will call FUNCTION with (A B) and (B A), should probably eliminate
+  ;;       the duplicate call.
+  (do-all (a container)
+    (flet ((thunk (b)
+             (funcall function a b)))
+      (declare (dynamic-extent #'thunk))
+      (call-with-overlapping #'thunk container a))))
 
 ;;; Use this as the size along one dimension for the box that is
 ;;; constructed from the ray passed to CALL-WITH-INTERSECTING when

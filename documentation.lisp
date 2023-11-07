@@ -168,6 +168,20 @@ either VEC3s or VEC2s.
 See DO-INTERSECTING
 See CONTAINER (type)")
 
+  (function call-with-pairs
+    "Calls FUNCTION with all pairs of overlapping objects.
+
+The function will be called with all pairs of objects that overlap
+each other according to the container's internal bounding volume of
+the objects.
+
+It is up to you to implement the fine grained intersection test
+between any two objects, this will only approximate the lookup based
+on the container's internal acceleration structures.
+
+See DO-PAIRS
+See CONTAINER (type)")
+
   (function serialize
     "Serialise CONTAINER to FILE.
 
@@ -285,6 +299,13 @@ See CALL-WITH-CONTAINED")
 Returns the RETURN value, and executes BODY in a BLOCK NIL context.
 
 See CALL-WITH-INTERSECTING")
+
+  (function do-pairs
+    "Convenience macro to iterate over pairs of overlapping objects.
+
+Returns the RETURN value, and executes BODY in a BLOCK NIL context.
+
+See CALL-WITH-PAIRS")
 
   (function find-region
     "Returns a region that encompasses all objects passed as tightly as possible.
