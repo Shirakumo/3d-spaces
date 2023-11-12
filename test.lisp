@@ -262,6 +262,25 @@
         ;; Remove all objects
         (finish (space:leave all-objects container))
         (finish (space:do-all (object container)
+                  (false object)))))
+
+    (group (update)
+      (let* ((container (make-container))
+             (all-objects (loop repeat random-test-object-count
+                                collect (make-object (vrand (make-vec 0 0 0) 100) (vrand (make-vec 50 50 50) 100)))))
+        (finish (space:enter all-objects container))
+        (loop repeat 100
+              do (loop for object in all-objects
+                       do (setf (space:location object) (vrand (make-vec 0 0 0) 100))
+                          (space:update object container)))
+        (test-print-and-describe container)
+        (let ((objects '()))
+          (space:do-all (object container)
+            (push object objects))
+          (is set= all-objects objects))
+        ;; Remove all objects
+        (finish (space:leave all-objects container))
+        (finish (space:do-all (object container)
                   (false object)))))))
 
 (defun make-nodes (count spread size-spread)
