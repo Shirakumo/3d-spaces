@@ -150,15 +150,26 @@
   (object (error "required") :read-only T)
   ;; Cached object bounding box. Always stored as `vec3'. For
   ;; dimensions < 3, only the first components are accessed.
-  (bb-min (error "required") :type vec3 :read-only T)
-  (bb-max (error "required") :type vec3 :read-only T))
+  (bb-min (error "required") :type vec3)
+  (bb-max (error "required") :type vec3))
 
-(declaim (inline make-object-info))
-(defun make-object-info (object)
+(declaim (inline object-bounding-box object-bounding-box<-))
+(defun object-bounding-box (object)
   (let* ((location (ensure-vec3 (location object)))
          (size/2 (ensure-vec3 (bsize object)))
          (bb-min (v- location size/2))
          (bb-max (v+ location size/2)))
+    (values bb-min bb-max)))
+
+(defun object-bounding-box<- (bb-min bb-max object)
+  (let* ((location (ensure-vec3 (location object)))
+         (size/2 (ensure-vec3 (bsize object))))
+    (values (!v- bb-min location size/2)
+            (!v+ bb-max location size/2))))
+
+(declaim (inline make-object-info))
+(defun make-object-info (object)
+  (multiple-value-bind (bb-min bb-max) (object-bounding-box object)
     (%make-object-info object bb-min bb-max)))
 
 (declaim (inline nexpand-bounds-for-object))
@@ -551,107 +562,129 @@
       (%call-with-all #'visit node))
     (%enter-all object-infos tree dimension-count split-size max-depth)))
 
-(defun kd-tree-insert (object tree)
+(defun %kd-tree-insert (object info tree)
   (declare (optimize speed (safety 1)))
   (let* ((dimension-count (kd-tree-dimensions tree))
          (max-depth (kd-tree-max-depth tree))
-         (split-size (kd-tree-split-size tree))
-         (info (make-object-info object)))
+         (split-size (kd-tree-split-size tree)))
     (with-array (u (object-info-bb-min info))
       (labels ((visit (node parent parent-axis depth)
                  (declare (type (unsigned-byte 8) depth))
                  (cond ;; Reached a leaf. Push the object into the
-                       ;; leaf, then split the leaf if
-                       ;; necessary. `split-node' may return NIL in
-                       ;; which case the surrounding `visit' call will
-                       ;; call `recompute-subtree' to rebuild a larger
-                       ;; subtree.
-                       ((leaf-p node)
-                        (let ((new-object-index (leaf-push-object info node)))
-                          (cond ((< new-object-index (1- split-size))
-                                 (setf (gethash object (kd-tree-object->node tree)) node)
-                                 node)
-                                ((not (< depth max-depth))
-                                 (warn "Unable to split ~a because depth is at max depth (~d)"
-                                       node depth)
-                                 NIL)
-                                (T
-                                 (split-node tree parent node dimension-count parent-axis)))))
-                       ;; If the minimal corner of OBJECT is below the
-                       ;; splitting pane, continue in the "near"
-                       ;; subtree. The recursive `visit' call returns
-                       ;; a (possibly new) node or NIL.
-                       ((< (aref u (node-axis node)) (node-position node))
-                        (let ((child (visit (node-near node) node (node-axis node) (1+ depth))))
-                          (cond ((null child) ; tried to split CHILD but failed.
-                                 (let ((max-depth (- max-depth depth)))
-                                   (recompute-subtree node tree dimension-count split-size max-depth)))
-                                (T ; extended child or new subtree, adjust bounding box
-                                 (nexpand-bounds-for-node node child)
-                                 (setf (node-near node) child)
-                                 node))))
-                       ;; Otherwise insert in "far" subtree using the same logic.
-                       (T
-                        (let ((child (visit (node-far node) node (node-axis node) (1+ depth))))
-                          (cond ((null child)
-                                 (let ((max-depth (- max-depth depth)))
-                                   (recompute-subtree node tree dimension-count split-size max-depth)))
-                                (T
-                                 (nexpand-bounds-for-node node child)
-                                 (setf (node-far node) child)
-                                 node)))))))
+                   ;; leaf, then split the leaf if
+                   ;; necessary. `split-node' may return NIL in
+                   ;; which case the surrounding `visit' call will
+                   ;; call `recompute-subtree' to rebuild a larger
+                   ;; subtree.
+                   ((leaf-p node)
+                    (let ((new-object-index (leaf-push-object info node)))
+                      (cond ((< new-object-index (1- split-size))
+                             (setf (gethash object (kd-tree-object->node tree)) node)
+                             node)
+                            ((not (< depth max-depth))
+                             (warn "Unable to split ~a because depth is at max depth (~d)"
+                                   node depth)
+                             NIL)
+                            (T
+                             (split-node tree parent node dimension-count parent-axis)))))
+                   ;; If the minimal corner of OBJECT is below the
+                   ;; splitting pane, continue in the "near"
+                   ;; subtree. The recursive `visit' call returns
+                   ;; a (possibly new) node or NIL.
+                   ((< (aref u (node-axis node)) (node-position node))
+                    (let ((child (visit (node-near node) node (node-axis node) (1+ depth))))
+                      (cond ((null child) ; tried to split CHILD but failed.
+                             (let ((max-depth (- max-depth depth)))
+                               (recompute-subtree node tree dimension-count split-size max-depth)))
+                            (T ; extended child or new subtree, adjust bounding box
+                             (nexpand-bounds-for-node node child)
+                             (setf (node-near node) child)
+                             node))))
+                   ;; Otherwise insert in "far" subtree using the same logic.
+                   (T
+                    (let ((child (visit (node-far node) node (node-axis node) (1+ depth))))
+                      (cond ((null child)
+                             (let ((max-depth (- max-depth depth)))
+                               (recompute-subtree node tree dimension-count split-size max-depth)))
+                            (T
+                             (nexpand-bounds-for-node node child)
+                             (setf (node-far node) child)
+                             node)))))))
         (setf (kd-tree-root tree) (visit (kd-tree-root tree) nil 0 0))))))
+
+(defun kd-tree-insert (object tree)
+  (declare (optimize speed (safety 1)))
+  (let ((info (make-object-info object)))
+    (%kd-tree-insert object info tree)))
+
+(defun %kd-tree-remove (object leaf tree)
+  (declare (optimize speed (safety 1)))
+  (assert (leaf-delete-object object leaf))
+  (remhash object (kd-tree-object->node tree))
+  (labels ((merge-nodes (parent node other-node)
+             (let ((objects (node-objects node))
+                   (other-objects (node-objects other-node)))
+               (loop for object across other-objects
+                     do (vector-push-extend object objects))
+               (let ((merged (make-leaf-with-bounds
+                              parent objects (node-bb-min node) (node-bb-max node))))
+                 (nexpand-bounds-for-node merged other-node)
+                 (register-object-infos tree objects merged))))
+           (visit (node child which)
+             (let ((parent (node-parent node))
+                   (other (ecase which
+                            (:near (node-far node))
+                            (:far  (node-near node)))))
+               ;; If the combined object counts of the two children of
+               ;; NODE are below the split size, NODE should be
+               ;; replaced with a new leaf node that is the result of
+               ;; merging the two children. Otherwise updating the
+               ;; bounding box of NODE and replacing one of its
+               ;; children is sufficient.
+               (cond ((and (leaf-p child) (leaf-p other)
+                           (< (+ (length (node-objects child))
+                                 (length (node-objects other)))
+                              (kd-tree-split-size tree)))
+                      (let ((new-node (merge-nodes parent child other)))
+                        (visit-parent parent node new-node)))
+                     (T
+                      (v<- (node-bb-min node) (node-bb-min other))
+                      (v<- (node-bb-max node) (node-bb-max other))
+                      (nexpand-bounds-for-node node child)
+                      (ecase which
+                        (:near (setf (node-near node) child))
+                        (:far (setf (node-far node) child)))
+                      (visit-parent parent node node)))))
+           (visit-parent (parent old-child new-child)
+             (if parent
+                 (let ((which (if (eq old-child (node-near parent)) :near :far)))
+                   (visit parent new-child which))
+                 (setf (kd-tree-root tree) new-child))))
+    (visit-parent (node-parent leaf) leaf leaf)))
 
 (defun kd-tree-remove (object tree)
   (declare (optimize speed (safety 1)))
   (let ((leaf (gethash object (kd-tree-object->node tree))))
     (when leaf
-      ;; Delete OBJECT from the leaf. `leaf-delete-object' returns NIL
-      ;; if nothing had to be done but that case should not happen
-      ;; since we checked the object to node mapping.
-      (assert (leaf-delete-object object leaf))
-      (remhash object (kd-tree-object->node tree))
-      (labels ((merge-nodes (parent node other-node)
-                 (let ((objects (node-objects node))
-                       (other-objects (node-objects other-node)))
-                   (loop for object across other-objects
-                         do (vector-push-extend object objects))
-                   (let ((merged (make-leaf-with-bounds
-                                  parent objects (node-bb-min node) (node-bb-max node))))
-                     (nexpand-bounds-for-node merged other-node)
-                     (register-object-infos tree objects merged))))
-               (visit (node child which)
-                 (let ((parent (node-parent node))
-                       (other (ecase which
-                                (:near (node-far node))
-                                (:far  (node-near node)))))
-                   ;; If the combined object counts of the two
-                   ;; children of NODE are below the split size, NODE
-                   ;; should be replaced with a new leaf node that is
-                   ;; the result of merging the two
-                   ;; children. Otherwise updating the bounding box of
-                   ;; NODE and replacing one of its children is
-                   ;; sufficient.
-                   (cond ((and (leaf-p child) (leaf-p other)
-                               (< (+ (length (node-objects child))
-                                     (length (node-objects other)))
-                                  (kd-tree-split-size tree)))
-                          (let ((new-node (merge-nodes parent child other)))
-                            (visit-parent parent node new-node)))
-                         (T
-                          (v<- (node-bb-min node) (node-bb-min other))
-                          (v<- (node-bb-max node) (node-bb-max other))
-                          (nexpand-bounds-for-node node child)
-                          (ecase which
-                            (:near (setf (node-near node) child))
-                            (:far (setf (node-far node) child)))
-                          (visit-parent parent node node)))))
-               (visit-parent (parent old-child new-child)
-                 (if parent
-                     (let ((which (if (eq old-child (node-near parent)) :near :far)))
-                       (visit parent new-child which))
-                     (setf (kd-tree-root tree) new-child))))
-        (visit-parent (node-parent leaf) leaf leaf)))))
+      (%kd-tree-remove object leaf tree))))
+
+(defun kd-tree-update (object tree)
+  (declare (optimize speed (safety 1)))
+  (let* ((object->node (kd-tree-object->node tree))
+         (leaf         (gethash object object->node)))
+    (if (null leaf)
+        (kd-tree-insert object tree)
+        (let* ((info   (find object (node-objects leaf)
+                             :test #'eq :key #'object-info-object))
+               (bb-min (object-info-bb-min info))
+               (bb-max (object-info-bb-max info)))
+          (object-bounding-box<- bb-min bb-max object)
+          (when (not (and (v<= (node-bb-min leaf) bb-min)
+                          (v<= bb-max (node-bb-max leaf))))
+            ;; TODO(jmoringe): walk up from current node until
+            ;; contained in bounding box, then walk down
+            (%kd-tree-remove object leaf tree)
+            (%kd-tree-insert object info tree))))))
 
 ;;; Protocol methods
 
@@ -673,6 +706,9 @@
 
 (defmethod leave (object (tree kd-tree))
   (kd-tree-remove object tree))
+
+(defmethod update (object (tree kd-tree))
+  (kd-tree-update object tree))
 
 (declaim (ftype (function (function node) (values null &optional))
                 %call-with-all))
