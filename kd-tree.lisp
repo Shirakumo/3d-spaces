@@ -635,19 +635,28 @@
                  (nexpand-bounds-for-node merged other-node)
                  (register-object-infos tree objects merged))))
            (visit (node child which)
-             (let ((parent (node-parent node))
-                   (other (ecase which
-                            (:near (node-far node))
-                            (:far  (node-near node)))))
+             (let* ((parent (node-parent node))
+                    (other (ecase which
+                             (:near (node-far node))
+                             (:far  (node-near node))))
+                    (child-object-count (when (leaf-p child)
+                                          (length (node-objects child))))
+                    (other-object-count (when (leaf-p other)
+                                          (length (node-objects other)))))
                ;; If the combined object counts of the two children of
                ;; NODE are below the split size, NODE should be
                ;; replaced with a new leaf node that is the result of
                ;; merging the two children. Otherwise updating the
                ;; bounding box of NODE and replacing one of its
                ;; children is sufficient.
-               (cond ((and (leaf-p child) (leaf-p other)
-                           (< (+ (length (node-objects child))
-                                 (length (node-objects other)))
+               (cond ((eql child-object-count 0)
+                      (setf (node-parent other) parent)
+                      (visit-parent parent node other))
+                     ((eql other-object-count 0)
+                      (setf (node-parent child) parent)
+                      (visit-parent parent node child))
+                     ((and child-object-count other-object-count
+                           (< (+ child-object-count other-object-count)
                               (kd-tree-split-size tree)))
                       (let ((new-node (merge-nodes parent child other)))
                         (visit-parent parent node new-node)))
