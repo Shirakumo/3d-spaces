@@ -499,8 +499,10 @@
                       ((not (< depth max-depth))
                        (warn "~S: Unable to split a set of ~:d object~:p because ~
                               depth is at max depth (~d)"
-                             (length object-infos) max-depth)
-                       (make-leaf-with-bounds parent object-infos bb-min bb-max))
+                             '%enter-all (length object-infos) max-depth)
+                       (register-object-infos
+                        tree object-infos
+                        (make-leaf-with-bounds parent object-infos bb-min bb-max)))
                       (t
                        (multiple-value-bind (near-objects far-objects axis position)
                            (split-objects dimension-count parent-axis
