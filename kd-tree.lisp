@@ -597,7 +597,8 @@
                         (let ((child (visit (node-near node) node (node-axis node) (1+ depth))))
                           (cond ((null child) ; tried to split CHILD but failed.
                                  (let ((max-depth (- max-depth depth)))
-                                   (recompute-subtree node tree dimension-count split-size max-depth)))
+                                   (when (< 1 max-depth)
+                                     (recompute-subtree node tree dimension-count split-size max-depth))))
                                 (T ; extended child or new subtree, adjust bounding box
                                  (nexpand-bounds-for-node node child)
                                  (setf (node-near node) child)
@@ -607,7 +608,8 @@
                         (let ((child (visit (node-far node) node (node-axis node) (1+ depth))))
                           (cond ((null child)
                                  (let ((max-depth (- max-depth depth)))
-                                   (recompute-subtree node tree dimension-count split-size max-depth)))
+                                   (when (< 1 max-depth)
+                                     (recompute-subtree node tree dimension-count split-size max-depth))))
                                 (T
                                  (nexpand-bounds-for-node node child)
                                  (setf (node-far node) child)
