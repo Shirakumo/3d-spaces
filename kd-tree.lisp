@@ -766,29 +766,39 @@
         (with-array (region-vs region-bb-max)
           (%visit-bbox #'visit (kd-tree-root container) region-us region-vs))))))
 
+(declaim (ftype (function (function kd-tree vec3 vec3))
+                %call-with-nodes-overlapping-region))
+(defun %call-with-nodes-overlapping-region (function container region-bb-min region-bb-max)
+  (declare (optimize speed (safety 1)))
+  (flet ((visit (node)
+           ;; First test whether the bounding box of NODE overlaps
+           ;; REGION.
+           (when (box-intersects-box-p (node-bb-min node) (node-bb-max node)
+                                       region-bb-min region-bb-max)
+             (funcall function node))))
+    (declare (dynamic-extent #'visit))
+    (with-array (region-us region-bb-min)
+      (with-array (region-vs region-bb-max)
+        (%visit-bbox #'visit (kd-tree-root container) region-us region-vs)))))
+
 (defmethod call-with-overlapping (function (container kd-tree) (region region))
   (declare (optimize speed (safety 1)))
   (let ((function (ensure-function function))
         (region-bb-min region)
         (region-bb-max (v+ region (region-size region))))
     (declare (dynamic-extent region-bb-min region-bb-max))
-    (flet ((visit (node)
-             ;; First test whether the bounding box of NODE overlaps
-             ;; REGION.
-             (when (box-intersects-box-p (node-bb-min node) (node-bb-max node)
-                                         region-bb-min region-bb-max)
-               ;; The protocol states that objects which lie
-               ;; completely outside of REGION must not be reported so
-               ;; we perform a fine test for each object.
-               (loop for info across (node-objects node)
-                     when (box-intersects-box-p
-                           (object-info-bb-min info) (object-info-bb-max info)
-                           region-bb-min region-bb-max)
-                       do (funcall function (object-info-object info))))))
-      (declare (dynamic-extent #'visit))
-      (with-array (region-us region-bb-min)
-        (with-array (region-vs region-bb-max)
-          (%visit-bbox #'visit (kd-tree-root container) region-us region-vs))))))
+    (flet ((visit-node (node)
+             ;; The protocol states that objects which lie completely
+             ;; outside of REGION must not be reported so we perform a
+             ;; fine test for each object.
+             (loop for info across (node-objects node)
+                   when (box-intersects-box-p
+                         (object-info-bb-min info) (object-info-bb-max info)
+                         region-bb-min region-bb-max)
+                   do (funcall function (object-info-object info)))))
+      (declare (dynamic-extent #'visit-node))
+      (%call-with-nodes-overlapping-region
+       #'visit-node container region-bb-min region-bb-max))))
 
 (defmethod call-with-overlapping (function (container kd-tree) (sphere sphere))
   (declare (optimize speed (safety 1)))
@@ -914,6 +924,54 @@
                                      (when (>= start (component (node-bb-min far)))
                                        (visit far segment-start)))))))))))
         (visit (kd-tree-root tree) ray-origin)))))
+
+(defmethod call-with-pairs (function (container kd-tree))
+  (declare (optimize speed (safety 1)))
+  (let ((function (ensure-function function))
+        (seen-pairs (make-hash-table :test #'eq)))
+    (declare (dynamic-extent seen-pairs))
+    (labels ((visit (node)
+               (labels ((visit-pairs (info other-node start)
+                          (loop with objects = (node-objects other-node)
+                                for i from start below (length objects)
+                                for other-info = (aref objects i)
+                                when (and (not (eq info other-info))
+                                          (box-intersects-box-p
+                                           (object-info-bb-min info)
+                                           (object-info-bb-max info)
+                                           (object-info-bb-min other-info)
+                                           (object-info-bb-max other-info)))
+                                  do (funcall function
+                                              (object-info-object info)
+                                              (object-info-object other-info))))
+                        (visit-overlapping (other-node)
+                          (unless (or (eq other-node node)
+                                      (member other-node (gethash node seen-pairs)
+                                              :test #'eq))
+                            (push node (gethash other-node seen-pairs))
+                            (loop for info across (node-objects node)
+                                  when (box-intersects-box-p
+                                        (object-info-bb-min info)
+                                        (object-info-bb-max info)
+                                        (node-bb-min other-node)
+                                        (node-bb-max other-node))
+                                    do (visit-pairs info other-node 0)))))
+                 (declare (dynamic-extent #'visit-pairs #'visit-overlapping))
+                 (typecase node
+                   (leaf
+                    ;; Objects within NODE.
+                    (loop for i of-type fixnum from 0
+                          for info across (node-objects node)
+                          do (visit-pairs info node (1+ i)))
+                    ;; Objects in other nodes.
+                    (%call-with-nodes-overlapping-region
+                     #'visit-overlapping container (node-bb-min node) (node-bb-max node))
+                    nil) ; fixed return type for SBCL
+                   (inner-node
+                    (visit (node-near node))
+                    (visit (node-far node)))))))
+      (declare (dynamic-extent #'visit))
+      (visit (kd-tree-root container)))))
 
 (defun kd-tree-call-with-nearest (function location tree)
   (declare (optimize speed (safety 1)))
