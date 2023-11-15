@@ -465,14 +465,15 @@
     (call-with-contained function container region)))
 
 (defmethod call-with-pairs (function (container container))
-  ;; TODO: this will call FUNCTION with (A B) and (B A), should probably eliminate
-  ;;       the duplicate call.
-  (do-all (a container)
-    (flet ((thunk (b)
-             (unless (eq a b)
-               (funcall function a b))))
-      (declare (dynamic-extent #'thunk))
-      (call-with-overlapping #'thunk container a))))
+  (let ((seen-pairs (make-hash-table :test #'eq)))
+    (do-all (a container)
+      (flet ((thunk (b)
+               (unless (or (eq a b)
+                           (member a (gethash b seen-pairs) :test #'eq))
+                 (push b (gethash a seen-pairs))
+                 (funcall function a b))))
+        (declare (dynamic-extent #'thunk))
+        (call-with-overlapping #'thunk container a)))))
 
 ;;; Use this as the size along one dimension for the box that is
 ;;; constructed from the ray passed to CALL-WITH-INTERSECTING when
