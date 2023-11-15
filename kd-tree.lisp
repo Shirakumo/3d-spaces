@@ -497,7 +497,7 @@
                         tree object-infos
                         (make-leaf-with-bounds parent object-infos bb-min bb-max)))
                       ((not (< depth max-depth))
-                       (warn "Unable to split a set of ~:d object~:p because ~
+                       (warn "~S: Unable to split a set of ~:d object~:p because ~
                               depth is at max depth (~d)"
                              (length object-infos) max-depth)
                        (make-leaf-with-bounds parent object-infos bb-min bb-max))
@@ -513,10 +513,10 @@
                                      (node-parent far) node)
                                node)
                              (progn
-                               (warn "Unable to split a set of ~:d object~:p ~
+                               (warn "~S: Unable to split a set of ~:d object~:p ~
                                       because none of the candidate splitting ~
                                       planes separated the objects"
-                                     (length object-infos))
+                                     '%enter-all (length object-infos))
                                (register-object-infos
                                 tree object-infos
                                 (make-leaf-with-bounds parent object-infos bb-min bb-max))))))))))
@@ -542,9 +542,9 @@
                   (node-parent far) node)
             node)
           (progn
-            (warn "Unable to split a set of ~:d object~:p because none of ~
+            (warn "~S: Unable to split a set of ~:d object~:p because none of ~
                    the candidate splitting planes separated the objects"
-                  (length objects))
+                  'split-node (length objects))
             (register-object-infos
              tree objects
              (make-leaf-with-bounds parent objects bb-min bb-max)))))))
@@ -571,45 +571,45 @@
       (labels ((visit (node parent parent-axis depth)
                  (declare (type (unsigned-byte 8) depth))
                  (cond ;; Reached a leaf. Push the object into the
-                   ;; leaf, then split the leaf if
-                   ;; necessary. `split-node' may return NIL in
-                   ;; which case the surrounding `visit' call will
-                   ;; call `recompute-subtree' to rebuild a larger
-                   ;; subtree.
-                   ((leaf-p node)
-                    (let ((new-object-index (leaf-push-object info node)))
-                      (cond ((< new-object-index (1- split-size))
-                             (setf (gethash object (kd-tree-object->node tree)) node)
-                             node)
-                            ((not (< depth max-depth))
-                             (warn "Unable to split ~a because depth is at max depth (~d)"
-                                   node depth)
-                             NIL)
-                            (T
-                             (split-node tree parent node dimension-count parent-axis)))))
-                   ;; If the minimal corner of OBJECT is below the
-                   ;; splitting pane, continue in the "near"
-                   ;; subtree. The recursive `visit' call returns
-                   ;; a (possibly new) node or NIL.
-                   ((< (aref u (node-axis node)) (node-position node))
-                    (let ((child (visit (node-near node) node (node-axis node) (1+ depth))))
-                      (cond ((null child) ; tried to split CHILD but failed.
-                             (let ((max-depth (- max-depth depth)))
-                               (recompute-subtree node tree dimension-count split-size max-depth)))
-                            (T ; extended child or new subtree, adjust bounding box
-                             (nexpand-bounds-for-node node child)
-                             (setf (node-near node) child)
-                             node))))
-                   ;; Otherwise insert in "far" subtree using the same logic.
-                   (T
-                    (let ((child (visit (node-far node) node (node-axis node) (1+ depth))))
-                      (cond ((null child)
-                             (let ((max-depth (- max-depth depth)))
-                               (recompute-subtree node tree dimension-count split-size max-depth)))
-                            (T
-                             (nexpand-bounds-for-node node child)
-                             (setf (node-far node) child)
-                             node)))))))
+                       ;; leaf, then split the leaf if
+                       ;; necessary. `split-node' may return NIL in
+                       ;; which case the surrounding `visit' call will
+                       ;; call `recompute-subtree' to rebuild a larger
+                       ;; subtree.
+                       ((leaf-p node)
+                        (let ((new-object-index (leaf-push-object info node)))
+                          (cond ((< new-object-index (1- split-size))
+                                 (setf (gethash object (kd-tree-object->node tree)) node)
+                                 node)
+                                ((not (< depth max-depth))
+                                 (warn "~A: Unable to split ~a because depth is at max depth (~d)"
+                                       '%kd-tree-insert node depth)
+                                 NIL)
+                                (T
+                                 (split-node tree parent node dimension-count parent-axis)))))
+                       ;; If the minimal corner of OBJECT is below the
+                       ;; splitting pane, continue in the "near"
+                       ;; subtree. The recursive `visit' call returns
+                       ;; a (possibly new) node or NIL.
+                       ((< (aref u (node-axis node)) (node-position node))
+                        (let ((child (visit (node-near node) node (node-axis node) (1+ depth))))
+                          (cond ((null child) ; tried to split CHILD but failed.
+                                 (let ((max-depth (- max-depth depth)))
+                                   (recompute-subtree node tree dimension-count split-size max-depth)))
+                                (T ; extended child or new subtree, adjust bounding box
+                                 (nexpand-bounds-for-node node child)
+                                 (setf (node-near node) child)
+                                 node))))
+                       ;; Otherwise insert in "far" subtree using the same logic.
+                       (T
+                        (let ((child (visit (node-far node) node (node-axis node) (1+ depth))))
+                          (cond ((null child)
+                                 (let ((max-depth (- max-depth depth)))
+                                   (recompute-subtree node tree dimension-count split-size max-depth)))
+                                (T
+                                 (nexpand-bounds-for-node node child)
+                                 (setf (node-far node) child)
+                                 node)))))))
         (setf (kd-tree-root tree) (visit (kd-tree-root tree) nil 0 0))))))
 
 (defun kd-tree-insert (object tree)
