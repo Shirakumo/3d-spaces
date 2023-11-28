@@ -702,6 +702,7 @@
 ;;; Protocol methods
 
 (defmethod clear ((tree kd-tree))
+  (clrhash (kd-tree-object->node tree))
   (setf (kd-tree-root tree) (make-leaf nil))
   tree)
 
