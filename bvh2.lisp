@@ -218,13 +218,16 @@
 
 (defun bvh-insert (bvh object)
   (declare (optimize speed))
-  (let ((node (node-insert (bvh-root bvh) object))
-        (table (bvh-table bvh)))
-    (cond ((eq object (bvh-node-o node))
-           (setf (gethash object table) node))
-          (T
-           (setf (gethash (bvh-node-o (bvh-node-l node)) table) (bvh-node-l node))
-           (setf (gethash (bvh-node-o (bvh-node-r node)) table) (bvh-node-r node))))
+  (let* ((table (bvh-table bvh))
+         (existing (gethash object table)))
+    (if existing
+        (node-refit-object existing object)
+        (let ((node (node-insert (bvh-root bvh) object)))
+          (cond ((eq object (bvh-node-o node))
+                 (setf (gethash object table) node))
+                (T
+                 (setf (gethash (bvh-node-o (bvh-node-l node)) table) (bvh-node-l node))
+                 (setf (gethash (bvh-node-o (bvh-node-r node)) table) (bvh-node-r node))))))
     object))
 
 (defun bvh-remove (bvh object)
