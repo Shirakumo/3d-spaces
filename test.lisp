@@ -158,6 +158,17 @@
                      (return object)))
         (is eq NIL (space:do-intersecting (object container (make-vec -1 0 0) (make-vec -1 0 0) NIL)
                      (return object)))
+        ;; Redundant ENTER calls are allowed.
+        (finish (space:enter box container))
+        (is set= (list box)
+            (let ((list ()))
+              (space:do-all (object container list)
+                (push object list))))
+        ;; First LEAVE call.
+        (finish (space:leave box container))
+        (finish (space:do-all (object container)
+                  (false object)))
+        ;; Redundant LEAVE calls are allowed.
         (finish (space:leave box container))
         (finish (space:do-all (object container)
                   (false object)))))
