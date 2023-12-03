@@ -716,7 +716,9 @@
   tree)
 
 (defmethod enter (object (tree kd-tree))
-  (kd-tree-insert object tree))
+  ;; We must allow the same object to be inserted multiple
+  ;; times. `kd-tree-update' has the correct behavior.
+  (kd-tree-update object tree))
 
 (defmethod leave (object (tree kd-tree))
   (kd-tree-remove object tree))
