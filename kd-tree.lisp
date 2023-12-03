@@ -558,10 +558,16 @@
   ;; First retrieve all `object-info's stored below NODE then build a
   ;; new node to replace NODE with.
   (let ((object-infos (make-object-info-vector)))
-    (flet ((visit (object-info)
-             (vector-push-extend object-info object-infos)))
+    (labels ((visit (node)
+               (typecase node
+                 (leaf
+                  (loop for object-info across (node-objects node)
+                        do (vector-push-extend object-info object-infos)))
+                 (inner-node
+                  (visit (node-near node))
+                  (visit (node-far node))))))
       (declare (dynamic-extent #'visit))
-      (%call-with-all #'visit node))
+      (visit node))
     (%enter-all object-infos tree dimension-count split-size max-depth)))
 
 (defun %kd-tree-insert (object info tree)
@@ -726,31 +732,12 @@
 (defmethod update (object (tree kd-tree))
   (kd-tree-update object tree))
 
-(declaim (ftype (function (function node) (values null &optional))
-                %call-with-all))
-(defun %call-with-all (function node)
-  (declare (optimize speed (safety 1)))
-  ;; TODO(jmoringe): everything else uses recursion
-  (let ((stack (make-array 0 :adjustable T :fill-pointer T)))
-    (declare (dynamic-extent stack))
-    (vector-push-extend node stack)
-    (loop for node = (vector-pop stack)
-          do (cond ((leaf-p node)
-                    (loop for info across (node-objects node)
-                          for object = (object-info-object info)
-                          do (funcall function info)))
-                   (T
-                    (vector-push-extend (node-near node) stack)
-                    (vector-push-extend (node-far node) stack)))
-          while (< 0 (length stack)))))
-
 (defmethod call-with-all (function (tree kd-tree))
   (let ((function (ensure-function function)))
-    (flet ((visit (info)
-             (declare (type object-info info))
-             (funcall function (object-info-object info))))
-      (declare (dynamic-extent #'visit))
-      (%call-with-all #'visit (kd-tree-root tree)))))
+    (maphash (lambda (object node)
+               (declare (ignore node))
+               (funcall function object))
+             (kd-tree-object->node tree))))
 
 (defmethod call-with-candidates (function (container kd-tree) (region region))
   (declare (optimize speed (safety 1)))
