@@ -332,20 +332,22 @@
   (declare (type single-float radius))
   (declare (type function f))
   (declare (type node node))
-  (let ((a (node-near node))
-        (b (node-far node))
-        (axis (node-axis node))
-        (position (node-position node)))
-    (funcall f node)
-    (when a
-      (when (< position (aref center axis))
-        (rotatef a b))
-      (%visit-sphere f a center radius volume)
-      (let ((old (shiftf (aref volume axis) position)))
-        ;; If the splitting axis is within the radius, also check the other side
-        (when (< (sqrdist volume center) (* radius radius))
-          (%visit-sphere f b center radius volume))
-        (setf (aref volume axis) old)))))
+  (cond ((leaf-p node)
+         (funcall f node))
+        (T
+         (let ((a (node-near node))
+               (b (node-far node))
+               (axis (node-axis node))
+               (position (node-position node)))
+           (when a
+             (when (< position (aref center axis))
+               (rotatef a b))
+             (%visit-sphere f a center radius volume)
+             (let ((old (shiftf (aref volume axis) position)))
+               ;; If the splitting axis is within the radius, also check the other side
+               (when (< (sqrdist volume center) (* radius radius))
+                 (%visit-sphere f b center radius volume))
+               (setf (aref volume axis) old)))))))
 
 (defun visit-sphere (f node center radius)
   (with-array (v center)
