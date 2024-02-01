@@ -8,6 +8,7 @@
    #:clamp
    #:box-intersects-box-p
    #:box-contains-box-p
+   #:sphere-intersects-box-p
    #:ray-intersects-box-p)
   (:export
    #:location
@@ -104,6 +105,7 @@
      #:ensure-function
      #:box-intersects-box-p
      #:box-contains-box-p
+     #:sphere-intersects-box-p
      #:ray-intersects-box-p)
     (:export
      #:kd-tree

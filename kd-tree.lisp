@@ -332,22 +332,24 @@
   (declare (type single-float radius))
   (declare (type function f))
   (declare (type node node))
-  (cond ((leaf-p node)
-         (funcall f node))
-        (T
-         (let ((a (node-near node))
-               (b (node-far node))
-               (axis (node-axis node))
-               (position (node-position node)))
-           (when a
-             (when (< position (aref center axis))
-               (rotatef a b))
-             (%visit-sphere f a center radius volume)
-             (let ((old (shiftf (aref volume axis) position)))
-               ;; If the splitting axis is within the radius, also check the other side
-               (when (< (sqrdist volume center) (* radius radius))
-                 (%visit-sphere f b center radius volume))
-               (setf (aref volume axis) old)))))))
+  (labels ((visit (node)
+             (cond ((leaf-p node)
+                    (funcall f node))
+                   (T
+                    (let ((axis (node-axis node))
+                          (position (node-position node))
+                          (near (node-near node))
+                          (far (node-far node)))
+                      (when (< position (aref center axis))
+                        (rotatef near far))
+                      (visit near)
+                      (let ((old (shiftf (aref volume axis) position)))
+                        ;; If the splitting axis is within the radius, also check
+                        ;; the other side
+                        (when (< (sqrdist volume center) (* radius radius))
+                          (visit far))
+                        (setf (aref volume axis) old)))))))
+    (visit node)))
 
 (defun visit-sphere (f node center radius)
   (with-array (v center)
@@ -787,25 +789,36 @@
                    when (box-intersects-box-p
                          (object-info-bb-min info) (object-info-bb-max info)
                          region-bb-min region-bb-max)
-                   do (funcall function (object-info-object info)))))
+                     do (funcall function (object-info-object info)))))
       (declare (dynamic-extent #'visit-node))
       (%call-with-nodes-overlapping-region
        #'visit-node container region-bb-min region-bb-max))))
 
-(defmethod call-with-overlapping (function (container kd-tree) (sphere sphere))
+(defmethod call-with-overlapping (function (container kd-tree) (region sphere))
   (declare (optimize speed (safety 1)))
-  (with-array (c sphere)
-    (let ((function (ensure-function function))
-          (v (make-array 3 :element-type 'single-float)))
-      (declare (dynamic-extent v))
-      (setf (aref v 0) (aref c 0))
-      (setf (aref v 1) (aref c 1))
-      (setf (aref v 2) (aref c 2))
-      (flet ((visit (node)
-               (loop for object across (node-objects node)
-                     do (funcall function (object-info-object object)))))
-        (declare (dynamic-extent #'visit))
-        (%visit-sphere #'visit (kd-tree-root container) c (sphere-radius sphere) v)))))
+  (let ((function (ensure-function function))
+        (radius (sphere-radius region)))
+    (flet ((visit-node (node)
+             ;; For objects to overlap REGION, the bounding box of the
+             ;; containing node has to at least overlap the region.
+             (when (sphere-intersects-box-p (node-bb-min node) (node-bb-max node)
+                                            region radius)
+               ;; The protocol states that objects which lie
+               ;; completely outside of REGION must not be reported so
+               ;; we perform a fine test for each object.
+               (loop for info across (node-objects node)
+                     when (sphere-intersects-box-p
+                           (object-info-bb-min info) (object-info-bb-max info)
+                           region radius)
+                       do (funcall function (object-info-object info))))))
+      (declare (dynamic-extent #'visit-node))
+      (with-array (c region)
+        (let ((v (make-array 3 :element-type 'single-float)))
+          (declare (dynamic-extent v))
+          (setf (aref v 0) (aref c 0))
+          (setf (aref v 1) (aref c 1))
+          (setf (aref v 2) (aref c 2))
+          (%visit-sphere #'visit-node (kd-tree-root container) c radius v))))))
 
 (defmethod call-with-contained (function (container kd-tree) (region region))
   (declare (optimize speed (safety 1)))
@@ -833,6 +846,35 @@
       (with-array (region-us region-bb-min)
         (with-array (region-vs region-bb-max)
           (%visit-bbox #'visit (kd-tree-root container) region-us region-vs))))))
+
+(defmethod call-with-contained (function (container kd-tree) (region sphere))
+  (declare (optimize speed (safety 1)))
+  (let ((function (ensure-function function))
+        (radius (sphere-radius region)))
+    (flet ((visit (node)
+             ;; For objects to be entirely contained in REGION
+             ;; or overlap REGION, the bounding box of the
+             ;; containing node has to at least overlap the
+             ;; region.
+             (when (sphere-intersects-box-p (node-bb-min node) (node-bb-max node)
+                                            region radius)
+               ;; The protocol states that objects which lie
+               ;; completely outside of REGION must not be
+               ;; reported so we perform a fine test for each
+               ;; object.
+               (loop for info across (node-objects node)
+                     when (sphere-intersects-box-p
+                           (object-info-bb-min info) (object-info-bb-max info)
+                           region radius)
+                     do (funcall function (object-info-object info))))))
+      (declare (dynamic-extent #'visit))
+      (with-array (c region)
+        (let ((v (make-array 3 :element-type 'single-float)))
+          (declare (dynamic-extent v))
+          (setf (aref v 0) (aref c 0))
+          (setf (aref v 1) (aref c 1))
+          (setf (aref v 2) (aref c 2))
+          (%visit-sphere #'visit (kd-tree-root container) c radius v))))))
 
 (defmethod call-with-intersecting (function (tree kd-tree) ray-origin ray-direction)
   (declare (optimize speed (safety 1)))

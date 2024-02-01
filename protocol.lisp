@@ -339,6 +339,26 @@
   (and (v<= containing-box-min contained-box-min)
        (v<= contained-box-max containing-box-max)))
 
+(defun sphere-intersects-box-p (box-min box-max sphere-center sphere-radius)
+  ;; Avro's algorithm.
+  (let ((partial-distance 0.0f0))
+    (macrolet ((axis (i)
+                 (let ((reader (ecase i
+                                 (0 'vx3)
+                                 (1 'vy3)
+                                 (2 'vz3))))
+                   `(let ((c (,reader sphere-center)))
+                      (let ((d1 (- (,reader box-min) c)))
+                        (if (plusp d1)
+                            (incf partial-distance (* d1 d1))
+                            (let ((d2 (- c (,reader box-max))))
+                              (when (plusp d2)
+                                (incf partial-distance (* d2 d2))))))))))
+      (axis 0)
+      (axis 1)
+      (axis 2))
+    (<= partial-distance (expt sphere-radius 2))))
+
 (declaim (inline ray-intersects-box-p))
 (defun ray-intersects-box-p (ray-origin ray-direction box-min box-max
                              &key (eps 1f-10))
