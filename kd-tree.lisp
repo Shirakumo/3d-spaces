@@ -1053,6 +1053,7 @@
       (when (<= radius max-radius)
         candidate))))
 
+;; TODO: allow K to be an array
 (defun kd-tree-k-nearest (k location tree &key test)
   (declare (optimize speed (safety 1)))
   (check-type k (and (integer 1) (unsigned-byte 32)))
@@ -1064,6 +1065,7 @@
                    (ensure-function test)))
          (found 0))
     (declare (type (unsigned-byte 32) max-i found))
+    (declare (dynamic-extent distances))
     (flet ((visit (candidate distance)
              (declare (type single-float distance))
              (when (and (< distance (aref distances max-i))
