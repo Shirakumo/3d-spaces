@@ -934,7 +934,7 @@
                                               (visit far contact)))
                                            (T ; ray start on far side
                                             (let ((contact (v+ segment-start (v* ray-direction s))))
-                                              (visit near contact))
+                                              (visit near segment-start))
                                             (when (>= start (component (node-bb-min far)))
                                               (visit far segment-start)))))
                                     ;; Ray does not penetrate
