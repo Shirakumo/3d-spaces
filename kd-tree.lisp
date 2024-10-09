@@ -1042,7 +1042,7 @@
   (declare (optimize speed (safety 1)))
   (declare (type (function (T) (values boolean &optional)) test))
   (let ((radius most-positive-single-float)
-        (max-radius (float max-radius 0f0))
+        (max-radius (float (or max-radius most-positive-single-float) 0f0))
         (candidate NIL))
     (flet ((visit (object distance)
              (when (funcall test object)
