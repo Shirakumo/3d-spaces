@@ -263,11 +263,12 @@
 (defmethod describe-object ((bvh bvh) stream)
   (call-next-method)
   (format stream "~&~%-------------------------")
-  (describe-tree (bvh-root bvh)
-                 (lambda (node)
-                   (unless (bvh-node-o node)
-                     (list (bvh-node-l node) (bvh-node-r node))))
-                 stream))
+  (org.shirakumo.text-draw:tree
+   (bvh-root bvh)
+   (lambda (node)
+     (unless (bvh-node-o node)
+       (list (bvh-node-l node) (bvh-node-r node))))
+   :stream stream))
 
 (defun bvh-lines (bvh)
   (let ((p ()))

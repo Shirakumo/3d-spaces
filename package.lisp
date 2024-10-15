@@ -3,7 +3,6 @@
   (:local-nicknames
    (#:sequences #:org.shirakumo.trivial-extensible-sequences))
   (:intern
-   #:describe-tree
    #:ensure-function
    #:clamp
    #:box-intersects-box-p
@@ -51,7 +50,6 @@
                 ,@args
                 (:local-nicknames
                  (#:sequences #:org.shirakumo.trivial-extensible-sequences))
-                (:import-from #:org.shirakumo.fraf.trial.space #:describe-tree)
                 (:export ,@(loop for s being the external-symbols of '#:org.shirakumo.fraf.trial.space
                                  collect s)))))
   (defpackage* #:org.shirakumo.fraf.trial.space.bvh2

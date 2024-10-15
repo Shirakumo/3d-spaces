@@ -18,6 +18,7 @@
                (:file "documentation"))
   :depends-on (:documentation-utils
                :3d-math
+               :text-draw
                :trivial-extensible-sequences
                :for)
   :in-order-to ((asdf:test-op (asdf:test-op :3d-spaces-test))))

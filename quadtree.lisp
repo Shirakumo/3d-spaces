@@ -547,7 +547,7 @@
 (defmethod describe-object ((tree quadtree) stream)
   (call-next-method)
   (format stream "~%~&-------------------------")
-  (describe-tree (quadtree-root tree) #'node-children stream))
+  (org.shirakumo.text-draw:tree (quadtree-root tree) #'node-children :stream stream))
 
 (defun quadtree-lines (tree)
   (let ((root (quadtree-root tree))

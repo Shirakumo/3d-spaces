@@ -549,21 +549,3 @@
       (declare (dynamic-extent #'consider))
       (call-with-overlapping #'consider container region))))
 
-(defun describe-tree (node children-fun stream &key (max-depth (or *print-level* 3)) (key #'identity))
-  (fresh-line stream)
-  (labels ((recurse (node last depth)
-             (when last
-               (destructuring-bind (cur . rest) last
-                 (dolist (p (reverse rest))
-                   (format stream "~:[│  ~;   ~]" p))
-                 (format stream "~:[├~;└~]─" cur)))
-             (cond ((< depth max-depth)
-                    (format stream " ~a~%" (funcall key node))
-                    (let ((children (funcall children-fun node)))
-                      (when (typep children 'sequence)
-                        (loop with max = (1- (length children))
-                              for j from 0 to max
-                              do (recurse (elt children j) (list* (= max j) last) (1+ depth))))))
-                   (t
-                    (format stream "...~%")))))
-    (recurse node () 0)))

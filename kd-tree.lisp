@@ -317,11 +317,12 @@
 (defmethod describe-object ((tree kd-tree) stream)
   (call-next-method)
   (format stream "~&~%-------------------------~%")
-  (describe-tree (kd-tree-root tree)
-                 (lambda (node)
-                   (unless (leaf-p node)
-                     (list (node-near node) (node-far node))))
-                 stream))
+  (org.shirakumo.text-draw:tree
+   (kd-tree-root tree)
+   (lambda (node)
+     (unless (leaf-p node)
+       (list (node-near node) (node-far node))))
+   :stream stream))
 
 (defmethod object-count ((container kd-tree))
   (hash-table-count (kd-tree-object->node container)))
