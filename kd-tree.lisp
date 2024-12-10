@@ -240,12 +240,34 @@
 (defun make-object-info-vector ()
   (make-array 0 :adjustable T :fill-pointer T :element-type 'object-info))
 
+;;; A "seen pairs" vector contains the following elements:
+;;; 0       -> (unsigned-byte 32)  generation number
+;;; 1       -> array-index         "fill pointer"
+;;; 2...end -> node                "other" nodes of seen pairs
+;;; The generation number is used to indicate the CALL-WITH-PAIRS call
+;;; to which the data in a vector belongs. This way, CALL-WITH-PAIRS
+;;; can reset the fill pointer when it encounters an outdated vector.
+(deftype seen-pairs-vector ()
+  `(simple-array T 1))
+
+(declaim (inline make-seen-pairs-vector))
+(defun make-seen-pairs-vector (size generation)
+  (let ((array (make-array size :adjustable NIL)))
+    (setf (aref array 0) generation)
+    array))
+
 (defstruct (leaf
             (:include node)
             (:conc-name node-)
             (:constructor %make-leaf (parent objects bb-min bb-max))
             (:copier NIL))
-  (objects (error "required") :type object-info-vector :read-only T))
+  (objects (error "required") :type object-info-vector :read-only T)
+  ;; The "seen pairs" vector is used by the call-with-pairs method to
+  ;; check whether a given pair of leafs has already been
+  ;; processed. After processing a pair, the "other" node of the pair
+  ;; is pushed onto the vector of "this" node. Using 0 as the
+  ;; generation marks the vector as outdated.
+  (seen-pairs (make-seen-pairs-vector 16 0) :type seen-pairs-vector))
 
 (declaim (ftype (function ((or null inner-node) &optional object-info-vector) (values node &optional NIL))
                 make-leaf))
@@ -284,6 +306,39 @@
         (v<- (node-bb-max leaf) bb-max))
       T)))
 
+(declaim (inline node-seen-pairs*))
+(defun node-seen-pairs* (node generation)
+  (declare (type (unsigned-byte 32) generation))
+  (declare (optimize speed (safety 1)))
+  (let* ((vector (node-seen-pairs node))
+         (vector-generation (aref vector 0)))
+    (declare (type (unsigned-byte 32) vector-generation))
+    ;; Clear the vector if its contents is from a previous
+    ;; "generation" which means an earlier CALL-WITH-PAIRS call than
+    ;; the current one.
+    (when (/= vector-generation generation)
+      (setf (aref vector 0) generation
+            (aref vector 1) 2))
+    vector))
+
+(defun push-seen-node (other-node node generation)
+  (declare (optimize speed (safety 1)))
+  (let* ((vector (node-seen-pairs* node generation))
+         (fill-pointer (aref vector 1)))
+    (declare (type seen-pairs-vector vector)
+             (type (unsigned-byte 32) fill-pointer)) ; arbitrary; large enough
+    (when (= fill-pointer (length vector))
+      (let* ((generation (aref vector 0))
+             (new-vector (make-seen-pairs-vector (* 2 fill-pointer) generation)))
+        (format *trace-output* "Generation ~D, resizing ~D -> ~D~%"
+                generation fill-pointer (* 2 fill-pointer))
+        (setf (subseq new-vector 2 fill-pointer) (subseq vector 2))
+        (setf (node-seen-pairs node) new-vector
+              vector new-vector)))
+    (assert (>= fill-pointer 2))
+    (setf (aref vector fill-pointer) other-node)
+    (setf (aref vector 1) (1+ fill-pointer))))
+
 (declaim (inline nexpand-bounds-for-node))
 (defun nexpand-bounds-for-node (node other-node)
   (nvmin (node-bb-min node) (node-bb-min other-node))
@@ -300,7 +355,10 @@
   (split-size 0 :type (integer 2 255) :read-only T)
   (max-depth 0 :type (unsigned-byte 8) :read-only T)
   (root (error "required") :type node)
-  (object->node (make-hash-table :test #'eq) :type hash-table :read-only T))
+  (object->node (make-hash-table :test #'eq) :type hash-table :read-only T)
+  ;; GENERATION counts the CALL-WITH-PAIRS calls in order to reset the
+  ;; "seen pairs" vectors in leaf nodes.
+  (generation 0 :type (unsigned-byte 32)))
 
 (defun make-kd-tree (&key (dimensions 3) (split-size 8) (max-depth 255))
   (check-type dimensions dimension-count)
@@ -326,6 +384,10 @@
 
 (defmethod object-count ((container kd-tree))
   (hash-table-count (kd-tree-object->node container)))
+
+(defun next-generation (tree)
+  (setf (kd-tree-generation tree)
+        (mod (1+ (kd-tree-generation tree)) (ash 1 32))))
 
 (defun %visit-sphere (f node center radius volume)
   (declare (optimize speed (safety 1)))
@@ -963,8 +1025,7 @@
 (defmethod call-with-pairs (function (container kd-tree))
   (declare (optimize speed (safety 1)))
   (let ((function (ensure-function function))
-        (seen-pairs (make-hash-table :test #'eq)))
-    (declare (dynamic-extent seen-pairs))
+        (generation (next-generation container)))
     (labels ((visit (node)
                (labels ((visit-pairs (info other-node start)
                           (loop with objects = (node-objects other-node)
@@ -980,17 +1041,22 @@
                                               (object-info-object info)
                                               (object-info-object other-info))))
                         (visit-overlapping (other-node)
-                          (unless (or (eq other-node node)
-                                      (member other-node (gethash node seen-pairs)
-                                              :test #'eq))
-                            (push node (gethash other-node seen-pairs))
-                            (loop for info across (node-objects node)
-                                  when (box-intersects-box-p
-                                        (object-info-bb-min info)
-                                        (object-info-bb-max info)
-                                        (node-bb-min other-node)
-                                        (node-bb-max other-node))
-                                    do (visit-pairs info other-node 0)))))
+                          (declare (type leaf other-node))
+                          (unless (eq other-node node)
+                            (let ((group (node-group node))
+                                  (other-group (node-group other-node)))
+                              (unless (or (and group (eq group other-group))
+                                          (let ((seen (node-seen-pairs* node generation)))
+                                            (find other-node seen
+                                                  :start 2 :end (aref seen 1) :test #'eq)))
+                                (push-seen-node node other-node generation)
+                                (loop for info across (node-objects node)
+                                      when (box-intersects-box-p
+                                            (object-info-bb-min info)
+                                            (object-info-bb-max info)
+                                            (node-bb-min other-node)
+                                            (node-bb-max other-node))
+                                        do (visit-pairs info other-node 0)))))))
                  (declare (dynamic-extent #'visit-pairs #'visit-overlapping))
                  (typecase node
                    (leaf
