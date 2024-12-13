@@ -3,3 +3,6 @@
     #:org.shirakumo.fraf.trial.space.bvh2
     #:org.shirakumo.fraf.trial.space.quadtree
     #:org.shirakumo.fraf.trial.space.grid3))
+
+(defmethod staple:subsystems ((system (eql (asdf:find-system :3d-spaces))))
+  ())
