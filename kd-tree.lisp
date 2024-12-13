@@ -144,10 +144,11 @@
 ;;; calling `location' and `bsize'.
 
 (defstruct (object-info
-            (:constructor %make-object-info (object bb-min bb-max))
+            (:constructor %make-object-info (object group bb-min bb-max))
             (:copier NIL)
             (:predicate NIL))
   (object (error "required") :read-only T)
+  (group (error "required") :read-only T)
   ;; Cached object bounding box. Always stored as `vec3'. For
   ;; dimensions < 3, only the first components are accessed.
   (bb-min (error "required") :type vec3)
@@ -169,8 +170,9 @@
 
 (declaim (inline make-object-info))
 (defun make-object-info (object)
-  (multiple-value-bind (bb-min bb-max) (object-bounding-box object)
-    (%make-object-info object bb-min bb-max)))
+  (let ((group (group object)))
+    (multiple-value-bind (bb-min bb-max) (object-bounding-box object)
+      (%make-object-info object group bb-min bb-max))))
 
 (declaim (inline nexpand-bounds-for-object))
 (defun nexpand-bounds-for-object (min max object-info)
@@ -259,7 +261,7 @@
 (defstruct (leaf
             (:include node)
             (:conc-name node-)
-            (:constructor %make-leaf (parent objects bb-min bb-max))
+            (:constructor %make-leaf (parent objects group bb-min bb-max))
             (:copier NIL))
   (objects (error "required") :type object-info-vector :read-only T)
   ;; The "seen pairs" vector is used by the call-with-pairs method to
@@ -267,29 +269,48 @@
   ;; processed. After processing a pair, the "other" node of the pair
   ;; is pushed onto the vector of "this" node. Using 0 as the
   ;; generation marks the vector as outdated.
-  (seen-pairs (make-seen-pairs-vector 16 0) :type seen-pairs-vector))
+  (seen-pairs (make-seen-pairs-vector 16 0) :type seen-pairs-vector)
+  (group (error "required")))
+
+(defun common-group (object-infos)
+  (loop with candidate = (object-info-group (aref object-infos 0))
+        for i from 1 below (length object-infos)
+        for group = (object-info-group (aref object-infos i))
+        unless (eq group candidate)
+          do (return NIL)
+        finally (return candidate)))
 
 (declaim (ftype (function ((or null inner-node) &optional object-info-vector) (values node &optional NIL))
                 make-leaf))
 (defun make-leaf (parent &optional object-infos)
   (multiple-value-bind (min max) (compute-bounds-for-objects object-infos)
     (if object-infos
-        (%make-leaf parent object-infos min max)
-        (%make-leaf parent (make-object-info-vector) min max))))
+        (let ((group (common-group object-infos)))
+          (%make-leaf parent object-infos group min max))
+        (%make-leaf parent (make-object-info-vector) NIL min max))))
 
 (defun make-leaf-with-bounds (parent object-infos bb-min bb-max)
-  (%make-leaf parent object-infos bb-min bb-max))
+  (let ((group (if (plusp (length object-infos))
+                   (common-group object-infos)
+                   NIL)))
+    (%make-leaf parent object-infos group bb-min bb-max)))
 
 (defmethod print-object ((node leaf) stream)
   (print-unreadable-object (node stream :type T)
     (format stream "leaf (~d object~:p)" (length (node-objects node)))))
 
 (defun leaf-push-object (object-info leaf)
-  ;; Return the index of the stored info. The caller can use this to
-  ;; decide whether the leaf should be split.
-  (prog1
-      (vector-push-extend object-info (node-objects leaf))
-    (nexpand-bounds-for-object (node-bb-min leaf) (node-bb-max leaf) object-info)))
+  (let ((node-objects (node-objects leaf))
+        (object-group (object-info-group object-info)))
+    (cond ((zerop (length node-objects))
+           (setf (node-group leaf) object-group))
+          ((not (eq object-group (node-group leaf)))
+           (setf (node-group leaf) NIL)))
+    ;; Return the index of the stored info. The caller can use this to
+    ;; decide whether the leaf should be split.
+    (prog1
+        (vector-push-extend object-info node-objects)
+      (nexpand-bounds-for-object (node-bb-min leaf) (node-bb-max leaf) object-info))))
 
 (defun leaf-delete-object (object leaf)
   (let* ((objects (node-objects leaf))
@@ -298,6 +319,10 @@
       (loop for i from position below (1- (length objects))
             do (setf (aref objects i) (aref objects (1+ i))))
       (decf (fill-pointer objects))
+      ;; After removing OBJECT, all remaining objects could have a
+      ;; common group.
+      (when (null (node-group leaf))
+        (setf (node-group leaf) (common-group objects)))
       ;; TODO(jmoringe): could check whether object was part of the
       ;; support of the bounding box and skip the re-computation if it
       ;; was not.
@@ -1032,6 +1057,9 @@
                                 for i from start below (length objects)
                                 for other-info = (aref objects i)
                                 when (and (not (eq info other-info))
+                                          (not (and (object-info-group info)
+                                                    (eq (object-info-group info)
+                                                        (object-info-group other-info))))
                                           (box-intersects-box-p
                                            (object-info-bb-min info)
                                            (object-info-bb-max info)
@@ -1061,9 +1089,10 @@
                  (typecase node
                    (leaf
                     ;; Objects within NODE.
-                    (loop for i of-type fixnum from 0
-                          for info across (node-objects node)
-                          do (visit-pairs info node (1+ i)))
+                    (unless (node-group node) ; common group means no pairs
+                      (loop for i of-type fixnum from 0
+                            for info across (node-objects node)
+                            do (visit-pairs info node (1+ i))))
                     ;; Objects in other nodes.
                     (%call-with-nodes-overlapping-region
                      #'visit-overlapping container (node-bb-min node) (node-bb-max node))

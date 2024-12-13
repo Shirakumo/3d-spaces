@@ -13,6 +13,7 @@
    #:location
    #:bsize
    #:radius
+   #:group
    #:ensure-region
    #:check
    #:clear

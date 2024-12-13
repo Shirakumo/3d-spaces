@@ -3,6 +3,11 @@
 (defgeneric location (object))
 (defgeneric bsize (object))
 (defgeneric radius (object))
+(defgeneric group (object)
+  (:method ((object t))
+    ;; NIL indicates that OBJECT has no associated group. Such objects
+    ;; can form pairs with all other objects.
+    NIL))
 (defgeneric ensure-region (object &optional region))
 
 (defgeneric check (container))

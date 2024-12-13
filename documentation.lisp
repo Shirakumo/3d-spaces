@@ -30,6 +30,25 @@ If no method is provided it is computed automatically from the BSIZE.
 See LOCATION
 See BSIZE")
 
+  (function group
+    "Returns NIL or an arbitrary designator for the group of objects that the object is part of.
+
+NIL indicates that the object is not part of any group.
+
+Objects within a group, that is objects for which this function
+returns an EQ value, are not considered as potential pairs by
+CALL-WITH-PAIRS.
+
+The primary use-case for this mechanism are higher-level objects that
+are composed of primitive objects. In the context of collision
+detection, the primitives that make up a higher-level object are not
+supposed to collide with each other. Eliminating such pairs in
+CALL-WITH-PAIRS based on the group is more efficient than having the
+client do it and also allows additional optimizations in the
+acceleration structure.
+
+See CALL-WITH-PAIRS")
+
   (function ensure-region
     "Coerces the object to a REGION instance.
 
