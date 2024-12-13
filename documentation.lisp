@@ -8,7 +8,10 @@ Users should extend this function with methods to provide the correct
 value for their own object representations.
 
 See BSIZE
-See RADIUS")
+See RADIUS
+See BOUNDING-BOX
+See ORIENTED-BOUNDING-BOX
+See BOUNDING-SPHERE")
 
   (function bsize
     "Returns a vec2 or vec3 representing the  half-size of the object's axis-aligned bounding box.
@@ -17,7 +20,9 @@ Users should extend this function with methods to provide the correct
 value for their own object representations.
 
 See LOCATION
-See RADIUS")
+See RADIUS
+See BOUNDING-BOX
+See ORIENTED-BOUNDING-BOX")
 
   (function radius
     "Returns a single-float representing the radius of the object's bounding sphere.
@@ -27,6 +32,47 @@ value for their own object representations.
 
 If no method is provided it is computed automatically from the BSIZE.
 
+See LOCATION
+See BSIZE
+See BOUNDING-SPHERE")
+
+  (function bounding-box
+    "Returns an axis-aligned bounding box for the object.
+
+Returns two values, a VEC3 for the center, and a VEC3 for the
+half-size of the box.
+
+If unimplemented, this will return LOCATION and BSIZE of the object.
+
+See BOUNDING-SPHERE
+See ORIENTED-BOUNDING-BOX
+See LOCATION
+See BSIZE")
+
+  (function oriented-bounding-box
+    "Returns an oriented bounding box for the object.
+
+Returns three values, a VEC3 for the center, a VEC3 for the half-size
+of the box, and a quaternion for orienting the box.
+
+If unimplemented, this will return LOCATION and BSIZE of the object,
+and a unit quaternion.
+
+See BOUNDING-SPHERE
+See BOUNDING-BOX
+See LOCATION
+See BSIZE")
+
+  (function bounding-sphere
+    "Returns a bounding sphereg for the object.
+
+Returns two values, a VEC3 for the center, and a radius for the
+sphere.
+
+If unimplemented, this will return LOCATION and RADIUS of the object.
+
+See BOUNDING-BOX
+See ORIENTED-BOUNDING-BOX
 See LOCATION
 See BSIZE")
 

@@ -13,6 +13,9 @@
    #:location
    #:bsize
    #:radius
+   #:bounding-box
+   #:oriented-bounding-box
+   #:bounding-sphere
    #:group
    #:ensure-region
    #:check

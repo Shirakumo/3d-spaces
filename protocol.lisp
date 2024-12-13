@@ -3,11 +3,10 @@
 (defgeneric location (object))
 (defgeneric bsize (object))
 (defgeneric radius (object))
-(defgeneric group (object)
-  (:method ((object t))
-    ;; NIL indicates that OBJECT has no associated group. Such objects
-    ;; can form pairs with all other objects.
-    NIL))
+(defgeneric bounding-box (object))
+(defgeneric oriented-bounding-box (object))
+(defgeneric bounding-sphere (object))
+(defgeneric group (object))
 (defgeneric ensure-region (object &optional region))
 
 (defgeneric check (container))
@@ -26,6 +25,21 @@
 
 (defgeneric serialize (container file object->id))
 (defgeneric deserialize (container file id->object))
+
+(defmethod group (object)
+  ;; NIL indicates that OBJECT has no associated group. Such objects
+  ;; can form pairs with all other objects.
+  NIL)
+
+(defmethod bounding-box (object)
+  (values (location object) (bsize object)))
+
+(defmethod oriented-bounding-box (object)
+  (multiple-value-bind (location bsize) (bounding-box object)
+    (values location bsize (quat))))
+
+(defmethod bounding-sphere (object)
+  (values (location object) (radius object)))
 
 (defstruct (container
             (:constructor NIL)
