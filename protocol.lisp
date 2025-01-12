@@ -71,6 +71,21 @@
 (defmethod location ((plane plane))
   plane)
 
+(defstruct (mesh
+            (:constructor mesh (vertices faces))
+            (:predicate NIL)
+            (:copier NIL))
+  (vertices NIL :type (simple-array single-float (*)))
+  (faces NIL :type (simple-array (unsigned-byte 32) (*))))
+
+(defmethod print-object ((mesh mesh) stream)
+  (prin1 (list 'mesh (mesh-vertices mesh) (mesh-faces mesh))
+         stream))
+
+(defmethod make-load-form ((mesh mesh) &optional environment)
+  (declare (ignore environment))
+  `(mesh ,(mesh-vertices mesh) ,(mesh-faces mesh)))
+
 (defstruct (sphere
             (:include vec3)
             (:constructor %sphere (org.shirakumo.fraf.math.vectors::varr3 radius))

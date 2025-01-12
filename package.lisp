@@ -39,6 +39,9 @@
    #:sphere-radius
    #:plane
    #:plane-distance
+   #:mesh
+   #:mesh-vertices
+   #:mesh-faces
    #:do-all
    #:do-candidates
    #:do-contained

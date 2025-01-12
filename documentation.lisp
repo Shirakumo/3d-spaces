@@ -315,6 +315,26 @@ plane along its normal.
 See 3D-VECTORS:VEC3 (type)
 See PLANE-DISTANCE")
 
+  (type mesh
+    "Describes a general triangle mesh.
+
+The mesh is described by a vertices array and a faces array.
+
+Vertices are always a triplet of X Y Z coordinates packed into the
+VERTICES array.
+
+Faces are always triangular, meaning a pair of three vertex indices
+represents a face. The order of the vertices must always be
+counter-clockwise whenever the normal of the face matters.
+
+Each vertex index in the face array describes the index of the vertex,
+NOT the starting index in the corresponding vertex-array. Meaning in
+order to reach the first element of the described vertex, the index
+must first be multiplied by 3.
+
+See MESH-VERTICES
+See MESH-FACES")
+
   (type region
     "Encompasses an axis-aligned region.
 
