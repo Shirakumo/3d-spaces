@@ -305,6 +305,16 @@ See CALL-WITH-OVERLAPPING")
 
 See CONTAINER (type)")
 
+  (type plane
+    "Describes an infinite plane.
+
+This is a VEC3, wherein the coordinates designate the normal of the
+plane, along with the PLANE-DISTANCE which describes the offset of the
+plane along its normal.
+
+See 3D-VECTORS:VEC3 (type)
+See PLANE-DISTANCE")
+
   (type region
     "Encompasses an axis-aligned region.
 

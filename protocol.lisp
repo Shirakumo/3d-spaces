@@ -45,6 +45,32 @@
             (:constructor NIL)
             (:copier NIL)))
 
+(defstruct (plane
+            (:include vec3)
+            (:constructor %plane (org.shirakumo.fraf.math.vectors::varr3 distance))
+            (:predicate NIL)
+            (:copier NIL))
+  (distance 0.0 :type single-float))
+
+(defmethod print-object ((plane plane) stream)
+  (prin1 (list 'plane (vx plane) (vy plane) (vz plane) (plane-distance plane))
+         stream))
+
+(defmethod make-load-form ((plane plane) &optional environment)
+  (declare (ignore environment))
+  `(%plane ,(varr3 plane) ,(plane-distance plane)))
+
+(declaim (inline plane))
+(defun plane (x y z d)
+  (let ((arr (make-array 3 :element-type 'single-float)))
+    (setf (aref arr 0) (float x 0f0))
+    (setf (aref arr 1) (float y 0f0))
+    (setf (aref arr 2) (float z 0f0))
+    (%plane arr (float d 0f0))))
+
+(defmethod location ((plane plane))
+  plane)
+
 (defstruct (sphere
             (:include vec3)
             (:constructor %sphere (org.shirakumo.fraf.math.vectors::varr3 radius))

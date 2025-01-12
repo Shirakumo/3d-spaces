@@ -37,6 +37,8 @@
    #:region-size
    #:sphere
    #:sphere-radius
+   #:plane
+   #:plane-distance
    #:do-all
    #:do-candidates
    #:do-contained
