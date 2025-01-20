@@ -47,10 +47,11 @@
 
 (defstruct (plane
             (:include vec3)
-            (:constructor %plane (org.shirakumo.fraf.math.vectors::varr3 distance))
+            (:constructor %plane (org.shirakumo.fraf.math.vectors::varr3 distance &optional group))
             (:predicate NIL)
             (:copier NIL))
-  (distance 0.0 :type single-float))
+  (distance 0.0 :type single-float)
+  (group NIL :type T))
 
 (defmethod print-object ((plane plane) stream)
   (prin1 (list 'plane (vx plane) (vy plane) (vz plane) (plane-distance plane))
@@ -58,18 +59,21 @@
 
 (defmethod make-load-form ((plane plane) &optional environment)
   (declare (ignore environment))
-  `(%plane ,(varr3 plane) ,(plane-distance plane)))
+  `(%plane ,(varr3 plane) ,(plane-distance plane) ,(plane-group plane)))
 
 (declaim (inline plane))
-(defun plane (x y z d)
+(defun plane (x y z d &optional group)
   (let ((arr (make-array 3 :element-type 'single-float)))
     (setf (aref arr 0) (float x 0f0))
     (setf (aref arr 1) (float y 0f0))
     (setf (aref arr 2) (float z 0f0))
-    (%plane arr (float d 0f0))))
+    (%plane arr (float d 0f0) group)))
 
 (defmethod location ((plane plane))
   plane)
+
+(defmethod group ((plane plane))
+  (plane-group plane))
 
 (defstruct (mesh
             (:constructor mesh (vertices faces))
