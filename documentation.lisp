@@ -174,6 +174,8 @@ See CONTAINER (type)")
   (function call-with-all
     "Calls FUNCTION with every object contained in CONTAINER.
 
+The objects are objects that were added to the container via ENTER.
+
 See DO-ALL
 See CONTAINER (type)")
 
@@ -187,8 +189,18 @@ CONTAINER. However, depending on the type of CONTAINER, the set of
 objects with which FUNCTION is actually called is usually a moderate
 superset of the objects that in CONTAINER that overlap REGION.
 
+The object may either be an object that was added to the container via
+ENTER, or some meta structure that contains information about the
+part that matches the query. In the latter case the structure has
+dynamic-extent and you must not pass its reference outside of the
+call to FUNCTION. The structure will also be tied to the original
+object that was ENTERed into the container. You can retrieve the
+original object by calling GROUP on the structure. The exact nature
+of the structure is specific to the container used.
+
 See DO-CANDIDATES
 See ENSURE-REGION
+See GROUP
 See REGION (type)
 See CONTAINER (type)")
 
@@ -201,8 +213,18 @@ specified region. The function *may* be called with objects that
 overlap but do not lie entirely inside the region. The function *will
 not* be called with objects that lie entirely outside the region.
 
+The object may either be an object that was added to the container via
+ENTER, or some meta structure that contains information about the
+part that matches the query. In the latter case the structure has
+dynamic-extent and you must not pass its reference outside of the
+call to FUNCTION. The structure will also be tied to the original
+object that was ENTERed into the container. You can retrieve the
+original object by calling GROUP on the structure. The exact nature
+of the structure is specific to the container used.
+
 See DO-CONTAINED
 See ENSURE-REGION
+See GROUP
 See REGION (type)
 See CONTAINER (type)")
 
@@ -215,13 +237,32 @@ region (including objects that lie entirely inside the region). The
 function *will not* be called with objects that lie entirely outside
 the region.
 
+The object may either be an object that was added to the container via
+ENTER, or some meta structure that contains information about the
+part that matches the query. In the latter case the structure has
+dynamic-extent and you must not pass its reference outside of the
+call to FUNCTION. The structure will also be tied to the original
+object that was ENTERed into the container. You can retrieve the
+original object by calling GROUP on the structure. The exact nature
+of the structure is specific to the container used.
+
 See DO-OVERLAPPING
 See ENSURE-REGION
+See GROUP
 See REGION (type)
 See CONTAINER (type)")
 
   (function call-with-intersecting
     "Calls FUNCTION with every object that *may* intersect the ray.
+
+The object may either be an object that was added to the container via
+ENTER, or some meta structure that contains information about the
+part that matches the query. In the latter case the structure has
+dynamic-extent and you must not pass its reference outside of the
+call to FUNCTION. The structure will also be tied to the original
+object that was ENTERed into the container. You can retrieve the
+original object by calling GROUP on the structure. The exact nature
+of the structure is specific to the container used.
 
 It is up to you to implement the fine grained intersection test
 between the ray and the object, this will only approximate the lookup
@@ -240,10 +281,20 @@ The function will be called with all pairs of objects that overlap
 each other according to the container's internal bounding volume of
 the objects.
 
+The objects may either be an object that was added to the container via
+ENTER, or some meta structure that contains information about the
+part that matches the query. In the latter case the structure has
+dynamic-extent and you must not pass its reference outside of the
+call to FUNCTION. The structure will also be tied to the original
+object that was ENTERed into the container. You can retrieve the
+original object by calling GROUP on the structure. The exact nature
+of the structure is specific to the container used.
+
 It is up to you to implement the fine grained intersection test
 between any two objects, this will only approximate the lookup based
 on the container's internal acceleration structures.
 
+See GROUP
 See DO-PAIRS
 See CONTAINER (type)")
 
@@ -264,6 +315,11 @@ See CONTAINER (type)")
   (function deserialize
     "Deserialize CONTAINER from FILE.
 
+This function may return a fresh CONTAINER type that may also be
+different to the original that was passed in, or it may modify the
+original container. Either way, the updated container instance is
+returned.
+
 ID->OBJECT is called for every object that was added to the container
 that was used to serialize to the given file. The function should
 accept the strings that were previously returned by OBJECT->ID and
@@ -277,6 +333,10 @@ or that the container is updated appropriately after deserialization.
 Consequences are undefined if the function returns NIL, or the same
 (EQ) object for two different (EQUAL) IDs, or returning different
 objects for the same (EQUAL) IDS.
+
+Where other functions speak of \"objects ENTERed into the container,\"
+the deserialized container for this purpose acts as if the objects as
+returned by ID->OBJECT were ENTERed into the container.
 
 See SERIALIZE
 See CONTAINER (type)")
