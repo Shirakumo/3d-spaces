@@ -15,12 +15,15 @@
                (:file "quadtree")
                (:file "grid3")
                (:file "kd-tree")
+               (:file "bsp")
                (:file "documentation"))
   :depends-on (:documentation-utils
                :3d-math
                :text-draw
                :trivial-extensible-sequences
-               :for)
+               :for
+               :nibbles
+               :babel)
   :in-order-to ((asdf:test-op (asdf:test-op :3d-spaces/test))))
 
 (asdf:defsystem 3d-spaces/test
