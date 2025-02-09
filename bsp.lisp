@@ -10,6 +10,13 @@
   (pd (error "missing cc-face-pd") :type single-float)
   (user-data (error "missing cc-face-user-data") :type (unsigned-byte 32)))
 
+;; Note:
+;; The slowest part of BSP building is constructing a CC-MESH for each
+;; leaf node. The arrays on this struct (and on CC-FACE) are not
+;; simple arrays, meaning we get a dynamic dispatch for each array
+;; access. Converting these to simple arrays using a similar technique
+;; to that in TRI-BUCKET may result in performance improvements to
+;; building
 (defstruct cc-mesh
   "Represent a connected convex mesh."
   ;; 3 floats per vert
@@ -102,9 +109,9 @@
    (- (* z0 x1) (* x0 z1))
    (- (* x0 y1) (* y0 x1))))
 
-(defun tri-normal (x0 y0 z0 x1 y1 z1 x2 y2 z2)
+(defun tri-normal (x0 y0 z0 x1 y1 z1 x2 y2 z2 eps)
   "Compute the normal of a tri with counter-clockwise winding. Returns
-(VALUES NX NY NZ) or (VALUES 0 0 0) if tri is degenerate."
+(VALUES NX NY NZ) or (VALUES 0 0 0) if tri is degenerate (the cross-product vector is smaller than eps)."
   (let* ((dx2 (- x2 x0))
          (dy2 (- y2 y0))
          (dz2 (- z2 z0))
@@ -115,7 +122,7 @@
          (cy (- (* dz1 dx2) (* dx1 dz2)))
          (cz (- (* dx1 dy2) (* dy1 dx2)))
          (len (sqrt (+ (* cx cx) (* cy cy) (* cz cz)))))
-    (if (= 0.0 len)
+    (if (< (abs len) eps)
         (values 0.0 0.0 0.0)
         (values (/ cx len) (/ cy len) (/ cz len)))))
 
@@ -142,18 +149,16 @@ DIST is the signed distance of the ray origin from the plane"
           (values intersect-t signed-dis-plane)))))
 
 (defun intersect-line-plane (x0 y0 z0 x1 y1 z1 nx ny nz d)
-  "Intersect a line segment (l0, l1) against a (normalized) plane NX NY NZ D
+  "Intersect a line (l0, l1) against a (normalized) plane NX NY NZ D
 
-Returns (VALUES X Y Z) or NIL if the line and plane do not intersect"
+Returns (VALUES X Y Z). The intersection might be outside of (l0, l1)."
   (declare (type single-float x0 y0 z0 x1 y1 z1 nx ny nz d))
   (let* ((lx (- x1 x0))
          (ly (- y1 y0))
          (lz (- z1 z0))
          (l-len (sqrt (+ (* lx lx) (* ly ly) (* lz lz))))
          (d (/ (intersect-ray-plane-t x0 y0 z0 lx ly lz nx ny nz d) l-len)))
-    (if (and (< d 1.0) (< 0.0 d))
-        (values (+ x0 (* d lx)) (+ y0 (* d ly)) (+ z0 (* d lz)))
-        nil)))
+    (values (+ x0 (* d lx)) (+ y0 (* d ly)) (+ z0 (* d lz)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tri-bucket
@@ -362,7 +367,8 @@ treat this as no polygon.
                            single-float single-float single-float single-float
                            single-float)
                           point-plane-class)
-                classify-point-to-plane))
+                classify-point-to-plane)
+         (inline classify-point-to-plane))
 (defun classify-point-to-plane (x y z nx ny nz d e)
   "Classify a point (X Y Z) with respect to the plane (NX NY NZ D)
 with epsilon E. If the plane is defined a point P with normal N,
@@ -370,7 +376,8 @@ then D is (dot P N)
 
 Returns :FRONT, :BEHIND, or :ON depending on whether the point is in
 front, behind, or on the plane (!!)"
-  (declare (type single-float x y z nx ny nz d e))
+  (declare (type single-float x y z nx ny nz d e)
+           (optimize speed))
   (let ((dist (- (dot nx ny nz x y z) d)))
     (cond
       ((< e dist) :front)
@@ -452,7 +459,7 @@ Does not modify BUCKET."
               (tri-bucket-ensure-n-floats tmp-bucket-0 15)
               (tri-bucket-ensure-n-floats tmp-bucket-1 15)
               (multiple-value-bind (front-len behind-len)
-                  (split-tri-with-plane x0 y0 z0 x1 y1 z1 x2 y2 z2 pnx pny pnz pd 0.00001
+                  (split-tri-with-plane x0 y0 z0 x1 y1 z1 x2 y2 z2 pnx pny pnz pd eps
                                         (tri-bucket-data tmp-bucket-0) (tri-bucket-data tmp-bucket-1))
                 (setf (tri-bucket-len tmp-bucket-0) front-len)
                 (setf (tri-bucket-len tmp-bucket-1) behind-len)
@@ -512,13 +519,9 @@ Returns NIL if all tris are degenerate"
                           (< (abs (- y1 y2)) eps)
                           (< (abs (- z1 z2)) eps)))
               (multiple-value-bind (nx ny nz)
-                  (tri-normal x0 y0 z0 x1 y1 z1 x2 y2 z2)
+                  (tri-normal x0 y0 z0 x1 y1 z1 x2 y2 z2 1e-8)
                 (unless (and (= nx 0.0) (= ny 0.0) (= nz 0.0))
                   (let ((d (dot x0 y0 z0 nx ny nz)))
-                    (assert (eq :on (classify-point-to-plane x0 y0 z0 nx ny nz d eps)))
-                    (assert (eq :on (classify-point-to-plane x1 y1 z1 nx ny nz d eps)))
-                    (assert (eq :on (classify-point-to-plane x2 y2 z2 nx ny nz d eps)))
-                    (assert (eq :coplanar (classify-tri-to-plane x0 y0 z0 x1 y1 z1 x2 y2 z2 nx ny nz d eps)))
                     (return-from pick-splitting-plane (values nx ny nz d bucket-ix ii (tri-bucket-user-data bucket))))))))))
   nil)
 
@@ -540,7 +543,7 @@ returns a leaf node with SOLID-P."
             (tmp-bucket-2 (make-tri-bucket)))
         (multiple-value-bind (x y z d bucket-ix-to-ignore tri-ix-to-ignore extra-data-ix)
             (pick-splitting-plane tri-buckets eps)
-          (when (and (= 0.0 x) (= 0.0 y) (= 0.0 z) (= 0.0 d))
+          (when (null x)
             ;; Leaf node
             (return-from bsp-node-from-tri-buckets
               (make-bsp-node-leaf solid-p)))
@@ -603,7 +606,7 @@ or out of a mesh."
         for class = (classify-point-to-plane vx vy vz x y z d eps)
         if (eq class :front) do (return t)))
 
-(defun make-bsp (&key (eps 0.000001))
+(defun make-bsp (&key (eps 1e-5))
   "EPS - the epsilon to use when building the BSP tree, this is
       effectively the 'thickness' of the planes"
   (%make-bsp :eps eps))
@@ -774,6 +777,7 @@ Calls CALLBACK with overlapping leaf nodes."
 ;; CC-MESH
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(declaim (inline find-3-plane-intersection))
 (defun find-3-plane-intersection (px0 py0 pz0 pd0 px1 py1 pz1 pd1 px2 py2 pz2 pd2)
   "Find the point which is the intersection of the planes P0, P1, P2.
 
@@ -787,6 +791,8 @@ Returns (VALUES X Y Z), or NIL if one of the planes is parallel to another."
   ;; x = -( pd0 py1 pz2 - pd0 py2 pz1 - pd1 py0 pz2 + pd1 py2 pz0 + pd2 py0 pz1 - pd2 py1 pz0) / (-px0 py1 pz2 + px0 py2 pz1 + px1 py0 pz2 - px1 py2 pz0 - px2 py0 pz1 + px2 py1 pz0)
   ;; y = -(-pd0 px1 pz2 + pd0 px2 pz1 + pd1 px0 pz2 - pd1 px2 pz0 - pd2 px0 pz1 + pd2 px1 pz0) / (-px0 py1 pz2 + px0 py2 pz1 + px1 py0 pz2 - px1 py2 pz0 - px2 py0 pz1 + px2 py1 pz0)
   ;; z = -(-pd0 px1 py2 + pd0 px2 py1 + pd1 px0 py2 - pd1 px2 py0 - pd2 px0 py1 + pd2 px1 py0) / ( px0 py1 pz2 - px0 py2 pz1 - px1 py0 pz2 + px1 py2 pz0 + px2 py0 pz1 - px2 py1 pz0)
+  (declare (type single-float px0 py0 pz0 pd0 px1 py1 pz1 pd1 px2 py2 pz2 pd2)
+           (optimize speed))
   (let ((x-denom (+ (- (* px0 py1 pz2)) (* px0 py2 pz1) (* px1 py0 pz2) (- (* px1 py2 pz0)) (- (* px2 py0 pz1)) (* px2 py1 pz0)))
         (y-denom (+ (- (* px0 py1 pz2)) (* px0 py2 pz1) (* px1 py0 pz2) (- (* px1 py2 pz0)) (- (* px2 py0 pz1)) (* px2 py1 pz0)))
         (z-denom (+ (* px0 py1 pz2) (- (* px0 py2 pz1)) (- (* px1 py0 pz2)) (* px1 py2 pz0) (* px2 py0 pz1) (- (* px2 py1 pz0)))))
@@ -881,6 +887,9 @@ Y Z D, to some given epsilon EPS."
 
 (defun %cc-mesh-add-face (cc-mesh px py pz pd eps user-data)
   "Add a face to CC-MESH, possibly pruning other faces and pruning/introducing edges, verts"
+  (declare (type cc-mesh cc-mesh)
+           (type single-float px py pz pd eps)
+           (type t user-data))
   ;; Add new verts
   (cond
     ((cc-mesh-find-existing-face cc-mesh px py pz pd eps) nil)
@@ -888,12 +897,12 @@ Y Z D, to some given epsilon EPS."
          (loop with faces = (cc-mesh-faces cc-mesh)
                with verts = (cc-mesh-verts cc-mesh)
                for face-1 across faces
-               for face-ix-1 from 0
+               for face-ix-1 of-type fixnum from 0
                for px1 = (cc-face-px face-1)
                for py1 = (cc-face-py face-1)
                for pz1 = (cc-face-pz face-1)
                for pd1 = (cc-face-pd face-1) do
-                 (loop for face-ix-2 from (+ 1 face-ix-1) below (length faces)
+                 (loop for face-ix-2 of-type fixnum from (+ 1 face-ix-1) below (length faces)
                        for face-2 = (aref faces face-ix-2)
                        for px2 = (cc-face-px face-2)
                        for py2 = (cc-face-py face-2)
@@ -929,8 +938,8 @@ Y Z D, to some given epsilon EPS."
            ;; Prune other verts
            (loop with faces = (cc-mesh-faces cc-mesh)
                  with verts = (cc-mesh-verts cc-mesh)
-                 for ii from 0
-                 while (and (< ii (/ (length verts) 3)) (< 0 (length verts)))
+                 for ii of-type fixnum from 0
+                 while (and (< ii (the fixnum (truncate (length verts) 3))) (< 0 (length verts)))
                  for x = (aref verts (+ 0 (* 3 ii)))
                  for y = (aref verts (+ 1 (* 3 ii)))
                  for z = (aref verts (+ 2 (* 3 ii)))
