@@ -36,6 +36,6 @@
   :bug-tracker "https://github.com/shirakumo/3d-spaces/issues"
   :source-control (:git "https://github.com/shirakumo/3d-spaces.git")
   :serial T
-  :components ((:file "test"))
-  :depends-on (:3d-spaces :parachute)
+  :components ((:file "test") (:file "bsp-test"))
+  :depends-on (:3d-spaces :parachute :cl-wavefront)
   :perform (asdf:test-op (op c) (uiop:symbol-call :parachute :test :org.shirakumo.fraf.trial.space.test)))

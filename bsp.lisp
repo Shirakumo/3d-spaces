@@ -1340,47 +1340,6 @@ Y Z D, to some given epsilon EPS."
     (let ((root (find-if-not #'bsp-node-parent nodes)))
       (%make-bsp :eps eps :build-state nil :root root :user-data-array user-data))))
 
-(defun %check-bsp-equal-mesh (mesh0 mesh1)
-  "Helper for CHECK-BSP-EQUAL, mesh equality"
-  (assert (= (length (mesh-vertices mesh0)) (length (mesh-vertices mesh1))))
-  (assert (= (length (mesh-faces mesh0)) (length (mesh-faces mesh1))))
-  (loop for ii below (length (mesh-vertices mesh0)) do
-    (assert (= (aref (mesh-vertices mesh0) ii) (aref (mesh-vertices mesh1) ii))))
-  (loop for ii below (length (mesh-faces mesh0)) do
-    (assert (= (aref (mesh-faces mesh0) ii) (aref (mesh-faces mesh1) ii)))))
-
-(defun %check-bsp-equal-node (bsp-node0 bsp-node1)
-  "Helper for CHECK-BSP-EQUAL, recursive bsp node comparison"
-  (assert (eql (bsp-node-leaf-p bsp-node0) (bsp-node-leaf-p bsp-node1)))
-  (cond ((bsp-node-leaf-p bsp-node0)
-         (assert (eql (bsp-node-solid-p bsp-node0) (bsp-node-solid-p bsp-node1)))
-         (when (bsp-node-solid-p bsp-node0)
-           (assert (and (bsp-node-tri-mesh bsp-node0) (bsp-node-tri-mesh bsp-node1)))
-           (%check-bsp-equal-mesh (bsp-node-tri-mesh bsp-node0) (bsp-node-tri-mesh bsp-node1))))
-        (t
-         (assert (= (bsp-node-px bsp-node0) (bsp-node-px bsp-node1)))
-         (assert (= (bsp-node-py bsp-node0) (bsp-node-py bsp-node1)))
-         (assert (= (bsp-node-pz bsp-node0) (bsp-node-pz bsp-node1)))
-         (assert (= (bsp-node-pd bsp-node0) (bsp-node-pd bsp-node1)))
-         (%check-bsp-equal-node (bsp-node-front bsp-node0) (bsp-node-front bsp-node1))
-         (%check-bsp-equal-node (bsp-node-behind bsp-node0) (bsp-node-behind bsp-node1)))))
-
-(defun check-bsp-equal (bsp0 bsp1)
-  "Compare two BSP, asserting if they are not equal. This is for
-testing serialization, and nothing else. Because this is for testing
-ser, exact FP comparisons are used."
-  (assert (= (bsp-eps bsp0) (bsp-eps bsp1)))
-  (%check-bsp-equal-node (bsp-root bsp0) (bsp-root bsp1)))
-
-(defun test-serialize (bsp id->object object->id)
-  "Ser + deser a bsp, return the new bsp"
-  (with-open-file (stream #P"test.bsp" :direction :output :element-type '(unsigned-byte 8) :if-exists :supersede)
-    (serialize bsp stream object->id))
-  (with-open-file (stream #P"test.bsp" :direction :input :element-type '(unsigned-byte 8))
-    (let ((new-bsp (%make-bsp :eps 0.0)))
-      (deserialize new-bsp stream id->object)
-      (check-bsp-equal new-bsp bsp))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Protocol
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;

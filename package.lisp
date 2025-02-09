@@ -92,7 +92,10 @@
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
     (:import-from #:org.shirakumo.fraf.trial.space
                   #:ensure-function)
-    (:export #:make-bsp))
+    (:export #:make-bsp #:make-mesh-input-data
+             #:ray-result-x
+             #:ray-result-y
+             #:ray-result-z))
 
   (defpackage* #:org.shirakumo.fraf.trial.space.quadtree
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
