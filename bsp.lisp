@@ -416,7 +416,6 @@ front, behind, or on the plane (!!)"
       ((and (eq p0 :on) (eq p1 :on) (eq p2 :on)) :coplanar)
       (t :split))))
 
-
 (defun tri-bucket-split-on-plane (bucket pnx pny pnz pd out-front out-behind tmp-bucket-0 tmp-bucket-1 tmp-bucket-2 ignore-tri-ix eps)
   "Split BUCKET into 2 other buckets, OUT-FRONT and OUT-BEHIND. Splits all tris
 in BUCKET based on their position relative to the plane given by PNX
@@ -480,6 +479,132 @@ Does not modify BUCKET."
                       ((= behind-len 9)
                        (tri-bucket-append-bucket out-behind tmp-bucket-1))))))))
 
+(defun is-tri-degen-same-vert (x0 y0 z0 x1 y1 z1 x2 y2 z2 eps)
+  "Returns T if two of the verts are the same, to within an epsilon"
+  (or
+   (and (< (abs (- x0 x1)) eps)
+        (< (abs (- y0 y1)) eps)
+        (< (abs (- z0 z1)) eps))
+   (and (< (abs (- x0 x2)) eps)
+        (< (abs (- y0 y2)) eps)
+        (< (abs (- z0 z2)) eps))
+   (and (< (abs (- x1 x2)) eps)
+        (< (abs (- y1 y2)) eps)
+        (< (abs (- z1 z2)) eps))))
+
+(defmacro tri-bucket-tri-value-bind ((bucket ii x0 y0 z0 x1 y1 z1 x2 y2 z2) &body body)
+  "II is an index of a triangle into bucket. This index will be
+multiplied by 9 to find the first float of the tri. X0 Y0 Z0 X1 Y1 Z1
+X2 Y2 Z2 are all symbols which will be bound to the respective
+triangle vertex value.
+
+II and BUCKET must be symbols, they will be re-evaluated to allow for
+easier type hinting through the macro."
+  (assert (symbolp x0))
+  (assert (symbolp y0))
+  (assert (symbolp z0))
+  (assert (symbolp x1))
+  (assert (symbolp y1))
+  (assert (symbolp z1))
+  (assert (symbolp x2))
+  (assert (symbolp y2))
+  (assert (symbolp z2))
+  (assert (symbolp bucket))
+  (assert (symbolp ii))
+  `(let* ((,x0 (aref (tri-bucket-data ,bucket) (+ 0 (* 9 ,ii))))
+          (,y0 (aref (tri-bucket-data ,bucket) (+ 1 (* 9 ,ii))))
+          (,z0 (aref (tri-bucket-data ,bucket) (+ 2 (* 9 ,ii))))
+          (,x1 (aref (tri-bucket-data ,bucket) (+ 3 (* 9 ,ii))))
+          (,y1 (aref (tri-bucket-data ,bucket) (+ 4 (* 9 ,ii))))
+          (,z1 (aref (tri-bucket-data ,bucket) (+ 5 (* 9 ,ii))))
+          (,x2 (aref (tri-bucket-data ,bucket) (+ 6 (* 9 ,ii))))
+          (,y2 (aref (tri-bucket-data ,bucket) (+ 7 (* 9 ,ii))))
+          (,z2 (aref (tri-bucket-data ,bucket) (+ 8 (* 9 ,ii)))))
+     ,@body))
+
+(defun pick-splitting-plane-strategy-first (tri-buckets eps)
+  "An implementation of PICK-SPLITTING-PLANE. See PICK-SPLITTING-PLANE
+for details. Picks the first non-degenerate tri."
+  ;; Pick first tri (TODO we can do better here)
+  (loop for bucket in tri-buckets
+        for bucket-ix from 0
+        do (loop for ii below (tri-bucket-len-tris bucket) do
+          (tri-bucket-tri-value-bind (bucket ii x0 y0 z0 x1 y1 z1 x2 y2 z2)
+            ;; Check if degen, if one of the verts matches another don't use this normal
+            (unless (is-tri-degen-same-vert x0 y0 z0 x1 y1 z1 x2 y2 z2 eps)
+              (multiple-value-bind (nx ny nz)
+                  (tri-normal x0 y0 z0 x1 y1 z1 x2 y2 z2 1e-8)
+                (unless (and (= nx 0.0) (= ny 0.0) (= nz 0.0))
+                  (let ((d (dot x0 y0 z0 nx ny nz)))
+                    (return-from pick-splitting-plane-strategy-first (values nx ny nz d bucket-ix ii (tri-bucket-user-data bucket))))))))))
+  nil)
+
+(defun count-tri-classes-to-plane (tri-buckets px py pz pd eps)
+  "Returns (VALUES FRONT BEHIND COPLANAR SPLIT), which are the counts of
+tris in front, behind, on, and straddling the plane PX PY PZ PD."
+  (declare (optimize speed))
+  (loop with front of-type fixnum = 0
+        with behind of-type fixnum = 0
+        with coplanar of-type fixnum = 0
+        with split of-type fixnum = 0
+    for bucket in tri-buckets do
+    (loop for ii of-type (unsigned-byte 31) below (tri-bucket-len-tris bucket) do
+      (tri-bucket-tri-value-bind (bucket ii x0 y0 z0 x1 y1 z1 x2 y2 z2)
+        (case (classify-tri-to-plane x0 y0 z0 x1 y1 z1 x2 y2 z2 px py pz pd eps)
+          (:front (incf front))
+          (:behind (incf behind))
+          (:coplanar (incf coplanar))
+          (:split (incf split)))))
+        finally (return (values front behind coplanar split))))
+
+(defun pick-splitting-plane-strategy-full-search (tri-buckets eps k)
+  "An implementation for PICK-SPLITTING-PLANE.
+
+Searches through all tris to pick the 'best' dividing plane. Planes
+are evaluated by how well they divide the incoming tris vs how many
+tris they split.
+
+K is a factor which controls how we prioritize good balancing vs
+reduced splits. A higher value will prefer reducing splits, and a
+lower value will prefer better balancing. This can be
+tweaked. Generally reducing splits is weighted higher than better
+balancing - a default value of 0.8 is given in the Real-Time
+Collision Detection book."
+  (loop
+    with best-bucket = nil
+    with best-tri = nil
+    with best-px = nil
+    with best-py = nil
+    with best-pz = nil
+    with best-pd = nil
+    with best-extra = nil
+    with lowest-score = 999999999999999999999.0
+    for bucket in tri-buckets
+    for bucket-ix from 0
+    do (loop for ii below (tri-bucket-len-tris bucket) do
+      (tri-bucket-tri-value-bind (bucket ii x0 y0 z0 x1 y1 z1 x2 y2 z2)
+        ;; Check if degen, if one of the verts matches another don't use this normal
+        (unless (is-tri-degen-same-vert x0 y0 z0 x1 y1 z1 x2 y2 z2 eps)
+          (multiple-value-bind (nx ny nz)
+              (tri-normal x0 y0 z0 x1 y1 z1 x2 y2 z2 1e-8)
+            (unless (and (= nx 0.0) (= ny 0.0) (= nz 0.0))
+              (let ((d (dot x0 y0 z0 nx ny nz)))
+                (multiple-value-bind (front behind coplanar split)
+                    (count-tri-classes-to-plane tri-buckets nx ny nz d eps)
+                  (declare (ignore coplanar))
+                  ;; Compute score based on the counts, and K. Higher K weights splitting tris more strongly.
+                  (let ((score (+ (* k split) (* (- 1.0 k) (abs (- front behind))))))
+                    (when (< score lowest-score)
+                      (setf lowest-score score)
+                      (setf best-bucket bucket-ix)
+                      (setf best-tri ii)
+                      (setf best-px nx)
+                      (setf best-py ny)
+                      (setf best-pz nz)
+                      (setf best-pd d)
+                      (setf best-extra (tri-bucket-user-data bucket)))))))))))
+    finally (return (when best-px (values best-px best-py best-pz best-pd best-bucket best-tri best-extra)))))
+
 (defun pick-splitting-plane (tri-buckets eps)
   "Given a list of triangle buckets, pick a splitting plane to split them by.
 
@@ -491,39 +616,13 @@ Returns (VALUES PX PY PZ PD BUCKET-IX TRI-IX EXTRA-DATA-IX)
     child nodes when splitting on this plane. EXTRA-DATA-IX is the
     index of the extra data associated with that tri.
 
+    If a general splitting plane is selected (not one which
+    corresponds to a tri), then BUCKET-IX, TRI-IX, and EXTRA-DATA-IX
+    are all NIL.
 
-Returns NIL if all tris are degenerate"
-  ;; Pick first tri (TODO we can do better here)
-  (assert tri-buckets)
-  (loop for bucket in tri-buckets
-        for bucket-ix from 0
-        do (loop for ii below (tri-bucket-len-tris bucket) do
-          (let* ((x0 (aref (tri-bucket-data bucket) (+ 0 (* 9 ii))))
-                 (y0 (aref (tri-bucket-data bucket) (+ 1 (* 9 ii))))
-                 (z0 (aref (tri-bucket-data bucket) (+ 2 (* 9 ii))))
-                 (x1 (aref (tri-bucket-data bucket) (+ 3 (* 9 ii))))
-                 (y1 (aref (tri-bucket-data bucket) (+ 4 (* 9 ii))))
-                 (z1 (aref (tri-bucket-data bucket) (+ 5 (* 9 ii))))
-                 (x2 (aref (tri-bucket-data bucket) (+ 6 (* 9 ii))))
-                 (y2 (aref (tri-bucket-data bucket) (+ 7 (* 9 ii))))
-                 (z2 (aref (tri-bucket-data bucket) (+ 8 (* 9 ii)))))
-            ;; Check if degen, if one of the verts matches another don't use this normal
-            (unless (or
-                     (and (< (abs (- x0 x1)) eps)
-                          (< (abs (- y0 y1)) eps)
-                          (< (abs (- z0 z1)) eps))
-                     (and (< (abs (- x0 x2)) eps)
-                          (< (abs (- y0 y2)) eps)
-                          (< (abs (- z0 z2)) eps))
-                     (and (< (abs (- x1 x2)) eps)
-                          (< (abs (- y1 y2)) eps)
-                          (< (abs (- z1 z2)) eps)))
-              (multiple-value-bind (nx ny nz)
-                  (tri-normal x0 y0 z0 x1 y1 z1 x2 y2 z2 1e-8)
-                (unless (and (= nx 0.0) (= ny 0.0) (= nz 0.0))
-                  (let ((d (dot x0 y0 z0 nx ny nz)))
-                    (return-from pick-splitting-plane (values nx ny nz d bucket-ix ii (tri-bucket-user-data bucket))))))))))
-  nil)
+    Returns NIL if all tris are degenerate."
+  ;;(pick-splitting-plane-strategy-first tri-buckets eps)
+  (pick-splitting-plane-strategy-full-search tri-buckets eps 0.8))
 
 (declaim (ftype (function (boolean) bsp-node) make-bsp-node-leaf))
 (defun make-bsp-node-leaf (solid-p)
