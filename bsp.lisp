@@ -122,7 +122,7 @@
          (cy (- (* dz1 dx2) (* dx1 dz2)))
          (cz (- (* dx1 dy2) (* dy1 dx2)))
          (len (sqrt (+ (* cx cx) (* cy cy) (* cz cz)))))
-    (if (< (abs len) eps)
+    (if (<= (abs len) eps)
         (values 0.0 0.0 0.0)
         (values (/ cx len) (/ cy len) (/ cz len)))))
 
@@ -1118,23 +1118,29 @@ Y Z D, to some given epsilon EPS."
               ;; project all verts onto the face plane where `centroid` is
               ;; the origin and compute angles for sorting against the origin
               (plane-normal
-                (let* ((x0 (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) 0)))))
-                       (y0 (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) 0)))))
-                       (z0 (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) 0)))))
-                       (x1 (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) 1)))))
-                       (y1 (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) 1)))))
-                       (z1 (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) 1)))))
-                       (x2 (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) 2)))))
-                       (y2 (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) 2)))))
-                       (z2 (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) 2)))))
-                       (dx01 (- x1 x0))
-                       (dy01 (- y1 y0))
-                       (dz01 (- z1 z0))
-                       (dx02 (- x2 x0))
-                       (dy02 (- y2 y0))
-                       (dz02 (- z2 z0)))
-                  (multiple-value-bind (nx ny nz) (cross dx01 dy01 dz01 dx02 dy02 dz02)
-                    (vec3 nx ny nz))))
+                ;; To compute the plane normal, we need to pick 3
+                ;; verts, and compute the normal of the triangle they
+                ;; make. We cannot simply pick the first 3 verts,
+                ;; because they might form a degenerate triangle (all
+                ;; 3 verts in a line). Instead, loop until we find a
+                ;; non-degenerate tri here.
+                (loop
+                  for ii from 0 below (- (length (cc-face-verts face)) 2)
+                  for x0 = (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) (+ ii 0)))))
+                  for y0 = (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) (+ ii 0)))))
+                  for z0 = (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) (+ ii 0)))))
+                  for x1 = (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) (+ ii 1)))))
+                  for y1 = (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) (+ ii 1)))))
+                  for z1 = (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) (+ ii 1)))))
+                  for x2 = (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) (+ ii 2)))))
+                  for y2 = (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) (+ ii 2)))))
+                  for z2 = (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) (+ ii 2)))))
+                  do (multiple-value-bind (nx ny nz) (tri-normal x0 y0 z0 x1 y1 z1 x2 y2 z2 0.0)
+                       (unless (and (zerop nx) (zerop ny) (zerop nz))
+                         (return (vunit (vec3 nx ny nz)))))
+                     ;; If we get here, the face is totally degenerate, so just return nil
+                  finally (return-from compute-sorted-face-verts nil)))
+              ;; Here we define x-axis in our plane space to be the vector from the centroid to the first vert of the face.
               (plane-x-axis (let* ((x0 (aref (cc-mesh-verts cc-mesh) (+ 0 (* 3 (aref (cc-face-verts face) 0)))))
                                    (y0 (aref (cc-mesh-verts cc-mesh) (+ 1 (* 3 (aref (cc-face-verts face) 0)))))
                                    (z0 (aref (cc-mesh-verts cc-mesh) (+ 2 (* 3 (aref (cc-face-verts face) 0)))))
@@ -1143,8 +1149,9 @@ Y Z D, to some given epsilon EPS."
                                 ;; degenerated, centroid cannot be the same as a vert unless face is concave
                                 (return-from compute-sorted-face-verts nil))
                               (vunit v)))
+              ;; Cross this x-axis with the plane normal to produce the y axis in our plane space
               (x-nor-cross (vc plane-x-axis plane-normal))
-              ;; Generate if cross is length 0
+              ;; Degenerate if cross is length 0
               (plane-y-axis (if (zerop (vlength x-nor-cross))
                                 (return-from compute-sorted-face-verts nil)
                                 (vunit x-nor-cross)))
