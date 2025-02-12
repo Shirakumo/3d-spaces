@@ -441,7 +441,7 @@ be cached so multiple tests aren't re-loading the same asset, see
                 (bsp:do-overlapping (result bsp (space:region (- x hx) (- y hy) (- z hz) (* 2.0 hx) (* 2.0 hy) (* 2.0 hz)))
                   (declare (ignore result))
                   (setf found-result t))
-                (is #'eq recorded-result found-result)))))
+                (is #'eq recorded-result found-result "~s | ~d ~d ~d ~d ~d ~d" model x y z hx hy hz)))))
 
 (defun %check-bsp-equal-mesh (mesh0 mesh1)
   "Helper for CHECK-BSP-EQUAL, mesh equality"
