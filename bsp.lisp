@@ -1452,11 +1452,17 @@ Y Z D, to some given epsilon EPS."
 
 (defstruct ray-result
   (leaf-mesh (error "missing ray-result-leaf-mesh") :type mesh)
+  (leaf-user-data (error "missing ray-result-leaf-user-data") :type t)
   (time (error "missing ray-result-time") :type single-float)
   (x (error "missing ray-result-x") :type single-float)
   (y (error "missing ray-result-y") :type single-float)
   (z (error "missing ray-result-z") :type single-float))
 (declaim (inline make-ray-result))
+
+(defstruct aabb-result
+  (leaf-mesh (error "missing aabb-result-leaf-mesh") :type mesh)
+  (leaf-user-data (error "missing aabb-result-leaf-user-data") :type t))
+(declaim (inline make-aabb-result))
 
 (defmethod enter ((mesh-input-data mesh-input-data) (bsp bsp))
   "MESH-INPUT-DATA is of type MESH-INPUT-DATA - it contains the mesh
@@ -1505,7 +1511,9 @@ mesh will effectively erase that data."
         (hx (/ (vx3 (region-size region)) 2.0))
         (hy (/ (vy3 (region-size region)) 2.0))
         (hz (/ (vz3 (region-size region)) 2.0))
-        (callback (lambda (node) (funcall function (bsp-node-tri-mesh node)))))
+        (callback (lambda (node) (funcall function (make-aabb-result
+                                                    :leaf-mesh (bsp-node-tri-mesh node)
+                                                    :leaf-user-data (bsp-node-user-data node))))))
     (bsp-query-aabb bsp x y z hx hy hz callback)))
 
 (defmethod call-with-contained (function (bsp bsp) (region region))
@@ -1515,16 +1523,17 @@ mesh will effectively erase that data."
         (x1 (+ (vx3 (region-size region)) (vx3 region)))
         (y1 (+ (vy3 (region-size region)) (vy3 region)))
         (z1 (+ (vz3 (region-size region)) (vz3 region))))
-    (do-overlapping (mesh bsp region)
+    (do-overlapping (aabb-result bsp region)
       ;; Check that all verts are inside this region
-      (when (loop for ii below (/ (length (mesh-vertices mesh)) 3)
-                  for x = (aref (mesh-vertices mesh) (+ 0 (* ii 3)))
-                  for y = (aref (mesh-vertices mesh) (+ 1 (* ii 3)))
-                  for z = (aref (mesh-vertices mesh) (+ 2 (* ii 3)))
-                  unless (and (<= x0 x) (<= x x1) (<= y0 y) (<= y y1) (<= z0 z) (<= z z1))
-                    do (return nil)
-                  finally (return t))
-        (funcall function mesh)))))
+      (let ((mesh (aabb-result-leaf-mesh aabb-result)))
+        (when (loop for ii below (/ (length (mesh-vertices mesh)) 3)
+                    for x = (aref (mesh-vertices mesh) (+ 0 (* ii 3)))
+                    for y = (aref (mesh-vertices mesh) (+ 1 (* ii 3)))
+                    for z = (aref (mesh-vertices mesh) (+ 2 (* ii 3)))
+                    unless (and (<= x0 x) (<= x x1) (<= y0 y) (<= y y1) (<= z0 z) (<= z z1))
+                      do (return nil)
+                    finally (return t))
+          (funcall function aabb-result))))))
 
 (defmethod call-with-intersecting (function (bsp bsp) ray-origin ray-direction)
   (multiple-value-bind (time node)
@@ -1532,9 +1541,12 @@ mesh will effectively erase that data."
                      (vx3 ray-origin) (vy3 ray-origin) (vz3 ray-origin)
                      (vx3 ray-direction) (vy3 ray-direction) (vz3 ray-direction))
     (when node
-      (let ((result (make-ray-result :leaf-mesh (bsp-node-tri-mesh node) :time time
-                                     :x (+ (vx3 ray-origin) (* time (vx3 ray-direction)))
-                                     :y (+ (vy3 ray-origin) (* time (vy3 ray-direction)))
-                                     :z (+ (vz3 ray-origin) (* time (vz3 ray-direction))))))
+      (let ((result (make-ray-result
+                     :leaf-mesh (bsp-node-tri-mesh node)
+                     :leaf-user-data (bsp-node-user-data node)
+                     :time time
+                     :x (+ (vx3 ray-origin) (* time (vx3 ray-direction)))
+                     :y (+ (vy3 ray-origin) (* time (vy3 ray-direction)))
+                     :z (+ (vz3 ray-origin) (* time (vz3 ray-direction))))))
         (declare (dynamic-extent result))
         (funcall function result)))))

@@ -93,9 +93,14 @@
     (:import-from #:org.shirakumo.fraf.trial.space
                   #:ensure-function)
     (:export #:make-bsp #:make-mesh-input-data
+             #:bsp-user-data-array
              #:ray-result-x
              #:ray-result-y
-             #:ray-result-z))
+             #:ray-result-z
+             #:ray-result-leaf-mesh
+             #:ray-result-leaf-user-data
+             #:aabb-result-leaf-mesh
+             #:aabb-result-leaf-user-data))
 
   (defpackage* #:org.shirakumo.fraf.trial.space.quadtree
       (:use #:cl #:org.shirakumo.fraf.math #:org.shirakumo.fraf.trial.space)
