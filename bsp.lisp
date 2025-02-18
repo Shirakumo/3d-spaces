@@ -1476,7 +1476,9 @@ SERIALIZE's OBJECT->ID function parameter."
 serialized and deserialized, the deserialized BSP does not store the
 old meshes entered into it, so calling REOPTIMIZE on the deserialized
 mesh will effectively erase that data."
-  (bsp-build bsp))
+  (prog1
+      (bsp-build bsp)
+    (setf (bsp-build-state bsp) (make-bsp-build-state))))
 
 (defmethod serialize ((bsp bsp) file object->id)
   (bsp-serialize bsp file object->id))
