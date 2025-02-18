@@ -1458,12 +1458,18 @@ Y Z D, to some given epsilon EPS."
   (z (error "missing ray-result-z") :type single-float))
 (declaim (inline make-ray-result))
 
-(defmethod enter (mesh-input-data (bsp bsp))
+(defmethod enter ((mesh-input-data mesh-input-data) (bsp bsp))
   "MESH-INPUT-DATA is of type MESH-INPUT-DATA - it contains the mesh
 *and* some arbitrary user data which is stored on the BSP and can be
 fed back during query. The user data must be serializable, see
 SERIALIZE's OBJECT->ID function parameter."
   (push mesh-input-data (bsp-build-state-meshes (bsp-build-state bsp))))
+
+(defmethod enter ((mesh mesh) (bsp bsp))
+  (enter (make-mesh-input-data :mesh mesh) bsp))
+
+(defmethod enter (object (bsp bsp))
+  (enter (make-mesh-input-data :mesh (geometry object) :user-data object) bsp))
 
 (defmethod reoptimize ((bsp bsp) &key)
   "Build the BSP from the meshes added with ENTER. If a BSP is
