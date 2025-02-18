@@ -46,6 +46,7 @@ If unimplemented, this will return LOCATION and BSIZE of the object.
 
 See BOUNDING-SPHERE
 See ORIENTED-BOUNDING-BOX
+See GEOMETRY
 See LOCATION
 See BSIZE")
 
@@ -60,6 +61,7 @@ and a unit quaternion.
 
 See BOUNDING-SPHERE
 See BOUNDING-BOX
+See GEOMETRY
 See LOCATION
 See BSIZE")
 
@@ -73,8 +75,21 @@ If unimplemented, this will return LOCATION and RADIUS of the object.
 
 See BOUNDING-BOX
 See ORIENTED-BOUNDING-BOX
+See GEOMETRY
 See LOCATION
 See BSIZE")
+
+  (function geometry
+    "Returns a MESH describing the geometry for the object.
+
+Returns a MESH instance.
+
+If unimplemented, this function will signal an error.
+
+See BOUNDING-BOX
+See ORIENTED-BOUNDING-BOX
+See BOUNDING-SPHERE
+See MESH")
 
   (function group
     "Returns NIL or an arbitrary designator for the group of objects that the object is part of.

@@ -16,6 +16,7 @@
    #:bounding-box
    #:oriented-bounding-box
    #:bounding-sphere
+   #:geometry
    #:group
    #:ensure-region
    #:check

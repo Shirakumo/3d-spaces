@@ -6,6 +6,7 @@
 (defgeneric bounding-box (object))
 (defgeneric oriented-bounding-box (object))
 (defgeneric bounding-sphere (object))
+(defgeneric geometry (object))
 (defgeneric group (object))
 (defgeneric ensure-region (object &optional region))
 
