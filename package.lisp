@@ -36,6 +36,7 @@
    #:container-p
    #:region
    #:region-size
+   #:region*
    #:sphere
    #:sphere-radius
    #:plane

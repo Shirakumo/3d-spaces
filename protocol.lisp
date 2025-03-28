@@ -145,13 +145,17 @@
   (let ((size (region-size region)))
     `(%region ,(varr region) (vec3 ,(vx size) ,(vy size) ,(vz size)))))
 
-(declaim (inline region))
+(declaim (inline region region*))
 (defun region (x y z w h d)
   (let ((arr (make-array 3 :element-type 'single-float)))
     (setf (aref arr 0) (float x 0f0))
     (setf (aref arr 1) (float y 0f0))
     (setf (aref arr 2) (float z 0f0))
     (%region arr (vec w h d))))
+
+(defun region* (x y z bw bh bd)
+  (region (- x bw) (- y bh) (- z bd)
+          (* bw 2) (* bh 2) (* bd 2)))
 
 (defmethod location ((region region))
   (nv+ (bsize region) region))
