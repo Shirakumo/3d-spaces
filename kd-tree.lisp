@@ -980,6 +980,7 @@
                   (declare (type vec3 bb-min bb-max))
                   (let* ((bb-min (vxy bb-min))
                          (bb-max (vxy bb-max)))
+                    (declare (dynamic-extent bb-min bb-max))
                     (ray-intersects-box-p ray-origin ray-direction bb-min bb-max)))))
              (3
               (check-type ray-origin vec3)
