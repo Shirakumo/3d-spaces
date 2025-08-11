@@ -4,9 +4,9 @@
   :author "Yukari Hafner <shinmera@tymoon.eu>"
   :maintainer "Yukari Hafner <shinmera@tymoon.eu>"
   :description "A library implementing spatial query structures"
-  :homepage "https://shirakumo.github.io/3d-spaces/"
-  :bug-tracker "https://github.com/shirakumo/3d-spaces/issues"
-  :source-control (:git "https://github.com/shirakumo/3d-spaces.git")
+  :homepage "https://shirakumo.org/docs/3d-spaces/"
+  :bug-tracker "https://shirakumo.org/project/3d-spaces/issues"
+  :source-control (:git "https://shirakumo.org/project/3d-spaces.git")
   :serial T
   :components ((:file "package")
                (:file "toolkit")
@@ -32,9 +32,9 @@
   :author "Yukari Hafner <shinmera@tymoon.eu>"
   :maintainer "Yukari Hafner <shinmera@tymoon.eu>"
   :description "Tests for the 3d-spaces system."
-  :homepage "https://shirakumo.github.io/3d-spaces/"
-  :bug-tracker "https://github.com/shirakumo/3d-spaces/issues"
-  :source-control (:git "https://github.com/shirakumo/3d-spaces.git")
+  :homepage "https://shirakumo.org/docs/3d-spaces/"
+  :bug-tracker "https://shirakumo.org/project/3d-spaces/issues"
+  :source-control (:git "https://shirakumo.org/project/3d-spaces.git")
   :serial T
   :components ((:file "test") (:file "bsp-test"))
   :depends-on (:3d-spaces :parachute :cl-wavefront)
